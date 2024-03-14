@@ -31,8 +31,39 @@ static char *code_format =
 "  return 0; "
 "}";
 
+//PA1.2
+int pos = 0;
+
+//PA1.2
+static void gen_num(){
+  int len = (rand() % 4) + 1;
+  buf[pos++] = (char)('1' + rand() % 8);
+  for (int i = 1; i < len; ++i){
+    buf[pos++] = (char)('0' + rand() % 9);
+  }
+}
+
+//PA1.2
+static void gen_rand_op(){
+  int op = rand() % 5;
+  switch (op){
+    case 0: buf[pos++] = '+'; break;
+    case 1: buf[pos++] = '-'; break;
+    case 2: buf[pos++] = '*'; break;
+    case 3: buf[pos++] = '/'; break;
+    case 4: buf[pos++] = '%'; break;
+    default: assert(0); break;
+  }
+}
+
 static void gen_rand_expr() {
-  buf[0] = '\0';
+//PA1.2
+//  buf[0] = '\0';
+  switch (rand() % 3) {
+  case 0: gen_num(); break;
+  case 1: buf[pos++] = '('; gen_rand_expr(); buf[pos++] = ')'; break;
+  default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -44,8 +75,9 @@ int main(int argc, char *argv[]) {
   }
   int i;
   for (i = 0; i < loop; i ++) {
+    pos = 0;
     gen_rand_expr();
-
+    buf[pos] = '\0';
     sprintf(code_buf, code_format, buf);
 
     FILE *fp = fopen("/tmp/.code.c", "w");

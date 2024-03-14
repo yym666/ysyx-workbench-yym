@@ -22,9 +22,15 @@
 
 enum {
   TK_NOTYPE = 256, TK_EQ,
-
+//PA1.2
+  TK_NUM,
+  TK_HEX,
+  TK_VAR,
+  TK_REG,
+  TK_NEQ,
+  TK_POINT,
+  TK_AND
   /* TODO: Add more token types */
-
 };
 
 static struct rule {
@@ -39,6 +45,18 @@ static struct rule {
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
   {"==", TK_EQ},        // equal
+//PA1.2
+  {"-", '-'},
+  {"\\*", '*'},
+  {"/", '/'},
+  {"!=", TK_NEQ},
+  {"0x[a-fA-F0-9]{8}", TK_HEX},
+  {"\\d+", TK_NUM},
+  {"[a-zA-Z][\\w]*", TK_VAR},
+  {"^\\$(0|[xast]\\d{1,2}|ra|sp|gp|tp)", TK_REG},
+  {"\\(", '('},
+  {"\\)", ')'},
+  {"&&", TK_AND}
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -93,11 +111,18 @@ static bool make_token(char *e) {
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
          */
-
+//PA1.2
+        if (substr_len > 32) assert(0);
+        
         switch (rules[i].token_type) {
-          default: TODO();
+//PA1.2
+          case TK_NOTYPE: 
+            tokens[nr_token++].type = rules[i].token_type;
+            break;
+          default: 
+            strcpy(tokens[nr_token].str, substr_start);
+            tokens[nr_token++].type = rules[i].token_type;
         }
-
         break;
       }
     }
@@ -111,6 +136,101 @@ static bool make_token(char *e) {
   return true;
 }
 
+//PA1.2
+bool check_parentheses(int p, int q){
+  if (tokens[p].type != '(' || tokens[q].type != ')')
+    return false;
+  int count = 0;
+  for (int i = p+1; i <= q-1; ++i){
+    if (tokens[p].type == '('){
+      count++;
+    }
+    else if (tokens[p].type == ')'){
+      count--;
+    }
+    if (count < 0){
+      return false;
+    }
+  }
+  if (count != 0){
+    return false;
+  }
+  return true;
+}
+
+//PA1.2
+int get_main_opt(int p, int q){
+  int qt_cnt = 0, ret = 0, level = 0;
+  for (int i = p; i <= q; ++i){
+    if (tokens[i].type == '('){
+      qt_cnt++;
+    }
+    else if (tokens[i].type == ')'){
+      qt_cnt--;
+    }
+    if (qt_cnt < 0) assert(0);
+    if (qt_cnt > 0) continue;
+    switch(tokens[i].type){
+      case '+': case '-':
+        if (ret == 0 || level > 1) 
+          ret = i, level = 1; 
+        break;
+      case '*': case '/': 
+        if (ret == 0 || level > 2) 
+          ret = i, level = 2;
+        break;
+      case TK_EQ: case TK_NEQ:
+        if (ret == 0)
+          ret = i, level = 3;
+        break;
+      default: assert(0);
+    }
+  }
+  if (qt_cnt != 0) assert(0);
+  return ret;
+}
+
+//PA1.2
+word_t eval(int p, int q){
+  if (p > q){
+    assert(0);
+    return 0;
+  }
+  else if (p == q){
+    if (tokens[p].type == TK_NUM){
+      return (word_t)(strtol(tokens[p].str, NULL, 10));
+    }
+    else if (tokens[p].type == TK_HEX){
+      return (word_t)(strtol(tokens[p].str, NULL, 16));
+    }
+    else if (tokens[p].type == TK_REG){
+      return isa_reg_str2val(tokens[p].str, NULL);
+    }
+    assert(0);
+  }
+  else if (check_parentheses(p, q) == 1){
+    return eval(p+1, q-1);
+  }
+  else{
+    int opt = get_main_opt(p, q);
+    word_t val1 = eval(p, opt-1);
+    word_t val2 = eval(opt+1, q);
+    switch (tokens[opt].type)
+    {
+      case '+': return val1 + val2; break;
+      case '-': return val1 - val2; break;
+      case '*': return val1 * val2; break;
+      case '/': 
+        if (val2 == 0) assert(0);
+        return val1 / val2;
+        break;
+      case TK_EQ: return val1 == val2; break;
+      case TK_NEQ: return val1 != val2; break;
+      default: assert(0); break;
+    }
+  }
+  assert(0);
+}
 
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
@@ -119,7 +239,7 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
-
-  return 0;
+//PA1.2
+  return eval(0, nr_token-1);
+//return 0;
 }

@@ -18,6 +18,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+//PA1.1
+#include <memory/paddr.h>
 
 static int is_batch_mode = false;
 
@@ -52,6 +54,68 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+//PA1.1
+static int chartonum(char *args){
+  int num = 0, i = 0;
+  while (args[i] != '\0') 
+    num = num * 10 + (args[i]-'0'), i++;
+  return num;
+}
+
+//PA1.1
+static int my_expr(char *args){
+  printf("%s\n\n", args);
+  if (args[0] != '0' || args[1] != 'x'){
+   printf("Number fault!\n");
+   return -1;
+  }
+  int len = strlen(args) - 2;
+  int ret = 0;
+  for (int i = 2; i < len+2; ++i){
+    ret = ret * 16 + (args[i] - '0');
+  }
+  return ret;
+}
+
+//PA1.1
+static int cmd_si(char *args) {
+  int step_num = (args == NULL) ? 1 : chartonum(args);
+  cpu_exec(step_num);
+  return 0;
+}
+
+//PA1.1
+static int cmd_info(char *args){
+  if (args == NULL){
+    printf("Command info need args: \n    r (for register)\n    w (for watchpoint)\n");
+    return 0;
+  }
+  if (args[0] == 'r')
+    isa_reg_display();
+  return 0;
+}
+
+//PA1.1
+static int cmd_x(char *addr_ch){
+  char *args = strtok(addr_ch, " ");
+  addr_ch = args + strlen(args) + 1;
+  printf("%s\n\n", args);
+  if (args == NULL || addr_ch == NULL){
+    printf("Command x need two args!\n");
+    return 0;
+  }
+  //jif (addr == NULL)
+  int len = chartonum(args);
+  int addr = my_expr(addr_ch);
+
+  for (int i = 0; i < len; ++i){
+    printf("0x%08x\n", paddr_read(addr, 4));
+    addr += 4;
+  }
+  return 0;
+}
+
+
 static int cmd_help(char *args);
 
 static struct {
@@ -62,6 +126,10 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
+//PA1.1
+  { "si", "Single step execute", cmd_si},
+  { "info", "Infomation print", cmd_info},
+  { "x", "Scan the memory", cmd_x},
 
   /* TODO: Add more commands */
 
