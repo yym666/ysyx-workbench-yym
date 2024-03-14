@@ -15,6 +15,9 @@
 
 #include <isa.h>
 
+//PA1.2
+#include <unistd.h>
+
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
@@ -51,7 +54,7 @@ static struct rule {
   {"/", '/'},
   {"!=", TK_NEQ},
   {"0x[a-fA-F0-9]{8}", TK_HEX},
-  {"\\d+", TK_NUM},
+  {"[0-9]+", TK_NUM},
   {"[a-zA-Z][\\w]*", TK_VAR},
   {"^\\$(0|[xast]\\d{1,2}|ra|sp|gp|tp)", TK_REG},
   {"\\(", '('},
@@ -106,7 +109,6 @@ static bool make_token(char *e) {
             i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
-
         /* TODO: Now a new token is recognized with rules[i]. Add codes
          * to record the token in the array `tokens'. For certain types
          * of tokens, some extra actions should be performed.
@@ -117,7 +119,6 @@ static bool make_token(char *e) {
         switch (rules[i].token_type) {
 //PA1.2
           case TK_NOTYPE: 
-            tokens[nr_token++].type = rules[i].token_type;
             break;
           default: 
             strcpy(tokens[nr_token].str, substr_start);
@@ -142,10 +143,10 @@ bool check_parentheses(int p, int q){
     return false;
   int count = 0;
   for (int i = p+1; i <= q-1; ++i){
-    if (tokens[p].type == '('){
+    if (tokens[i].type == '('){
       count++;
     }
-    else if (tokens[p].type == ')'){
+    else if (tokens[i].type == ')'){
       count--;
     }
     if (count < 0){
@@ -183,10 +184,12 @@ int get_main_opt(int p, int q){
         if (ret == 0)
           ret = i, level = 3;
         break;
-      default: assert(0);
+      default: break;
     }
   }
-  if (qt_cnt != 0) assert(0);
+  if (qt_cnt != 0 || level == 0){
+    assert(0);
+  } 
   return ret;
 }
 
@@ -237,9 +240,32 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
-
+  Log("nr_token = %d\n", nr_token);
   /* TODO: Insert codes to evaluate the expression. */
 //PA1.2
   return eval(0, nr_token-1);
 //return 0;
+}
+
+//PA1.2
+void expr_test(){
+  FILE *fp = fopen("tools/gen-expr/build/input","r");
+  assert(fp != NULL);
+
+  char buf[9999];
+  while (fgets(buf, 9999, fp)){
+    word_t answer = atoi(strtok(buf, " "));
+    char *e = strtok(NULL, "\n");
+    bool success = true;
+    printf("%s\n", e);
+    word_t result = expr(e, &success);
+    if (result != answer){
+      fclose(fp);
+      printf("%d %d\n", answer, result);
+      Log("Expr test failure!");
+      assert(0);
+    } 
+  }
+  fclose(fp);
+  Log("Expr test Passed!");
 }
