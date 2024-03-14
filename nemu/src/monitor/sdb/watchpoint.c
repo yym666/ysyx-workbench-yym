@@ -22,11 +22,17 @@ typedef struct watchpoint {
   struct watchpoint *next;
 
   /* TODO: Add more members if necessary */
-
+//PA1.3
+  char expr[32];
+  word_t las_val;
 } WP;
 
 static WP wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
+
+//PA1.3
+WP* new_WP();
+void free_wp(WP *wp);
 
 void init_wp_pool() {
   int i;
@@ -41,3 +47,90 @@ void init_wp_pool() {
 
 /* TODO: Implement the functionality of watchpoint */
 
+//PA1.3
+WP* new_WP(){
+  if (free_ == NULL){
+    assert(0);
+    return NULL;
+  }
+  WP* cur = free_;
+  free_ = free_->next;
+  cur->next = head;
+  head = cur;
+  return cur;
+}
+
+//PA1.3
+void del_watchpoint(char* s){
+  WP* cur = head;
+  WP* las = NULL;
+  while (cur != NULL){
+    if (strcmp(cur->expr, s) == 0){
+      if (las != NULL){
+        las->next = cur->next;
+      }
+      head = cur->next;
+      cur->next = free_;
+      free_ = cur;
+      printf("Watchpoint %d deleted\n", cur->NO);
+      return;
+    }
+    las = cur;
+    cur = cur->next;
+  }
+}
+
+//PA1.3
+void free_wp(WP *wp){
+  WP* cur = head;
+  
+  if (cur == wp){
+    head = cur->next;
+    cur->next = free_;
+    free_ = cur;
+    return;
+  }
+  while (cur->next != NULL){
+    if (cur->next == wp){
+      cur->next = wp->next;
+      wp->next = free_;
+      free_ = wp;
+      printf("Watchpoint %d deleted\n", cur->NO);
+      return;
+    }
+    cur = cur->next;
+  }
+  assert(0);
+}
+
+//PA1.3
+void watchpoint(){
+  WP *cur = head;
+  while (cur != NULL){
+    bool success = true;
+    word_t res = expr(cur->expr, &success);
+    if (res != cur->las_val){
+      printf("Watchpoint %d: %s\n",cur->NO, cur->expr);
+      printf("Old_value = %x\nNew_value = %x\n", cur->las_val, res);
+      cur->las_val = res;
+    }
+    cur = cur->next;
+  }
+}
+
+//PA1.3
+void wp_display(){
+  WP* cur = head;
+  while (cur != NULL){
+    printf("Watchpoint %d: %s = %x\n", cur->NO, cur->expr, cur->las_val);
+    cur = cur->next;
+  }
+}
+
+//PA1.3
+void set_watchpoint(char* args){
+  WP* cur = new_WP();
+  strcpy(cur->expr, args);
+  cur->las_val = expr(args, NULL);
+  printf("Watchpoint %d: %s\n", cur->NO, args);
+}
