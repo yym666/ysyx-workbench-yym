@@ -25,6 +25,11 @@ static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+//PA1.3
+void wp_display();
+void set_watchpoint();
+void del_watchpoint();
+void watchpoint();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -90,8 +95,12 @@ static int cmd_info(char *args){
     printf("Command info need args: \n    r (for register)\n    w (for watchpoint)\n");
     return 0;
   }
-  if (args[0] == 'r')
+  if (args[0] == 'r'){
     isa_reg_display();
+  }
+  else if (args[0] == 'w'){
+    wp_display();
+  }
   return 0;
 }
 
@@ -115,6 +124,30 @@ static int cmd_x(char *addr_ch){
   return 0;
 }
 
+//PA1.3
+static int cmd_w(char *args){
+  watchpoint();
+  if (args == NULL){
+    printf("Command w need one args!\n");
+    return 0;
+  }
+  set_watchpoint(args);
+  return 0;
+}
+
+//PA1.3
+static int cmd_d(char *args){
+  if (args == NULL){
+    printf("Command d need one args!\n");
+    return 0;
+  }
+  if (args[0] == '$'){
+   // args = args + 1;
+  }
+  printf("%s\n", args);
+  del_watchpoint(args);
+  return 0;
+}
 
 static int cmd_help(char *args);
 
@@ -130,7 +163,9 @@ static struct {
   { "si", "Single step execute", cmd_si},
   { "info", "Infomation print", cmd_info},
   { "x", "Scan the memory", cmd_x},
-
+//PA1.3
+  { "w", "Set watchpoint", cmd_w},
+  { "d", "Delete watchpoint", cmd_d},
   /* TODO: Add more commands */
 
 };

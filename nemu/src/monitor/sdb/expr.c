@@ -17,7 +17,8 @@
 
 //PA1.2
 #include <unistd.h>
-
+//PA1.3
+#include <memory/paddr.h>
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
@@ -31,7 +32,7 @@ enum {
   TK_VAR,
   TK_REG,
   TK_NEQ,
-  TK_POINT,
+  TK_DEREF,
   TK_AND
   /* TODO: Add more token types */
 };
@@ -56,7 +57,7 @@ static struct rule {
   {"0x[a-fA-F0-9]{8}", TK_HEX},
   {"[0-9]+", TK_NUM},
   {"[a-zA-Z][\\w]*", TK_VAR},
-  {"^\\$(0|[xast]\\d{1,2}|ra|sp|gp|tp)", TK_REG},
+  {"^\\$(0|[xast][0-9]{1,2}|ra|sp|gp|tp)", TK_REG},
   {"\\(", '('},
   {"\\)", ')'},
   {"&&", TK_AND}
@@ -133,7 +134,6 @@ static bool make_token(char *e) {
       return false;
     }
   }
-
   return true;
 }
 
@@ -214,6 +214,10 @@ word_t eval(int p, int q){
   else if (check_parentheses(p, q) == 1){
     return eval(p+1, q-1);
   }
+//PA1.3
+  else if (tokens[p].type == TK_DEREF){
+    return (word_t)paddr_read(eval(p+1, q), 4);
+  }
   else{
     int opt = get_main_opt(p, q);
     word_t val1 = eval(p, opt-1);
@@ -240,8 +244,18 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
-  Log("nr_token = %d\n", nr_token);
+  
   /* TODO: Insert codes to evaluate the expression. */
+//PA1.3
+  for (int i = 0; i < nr_token; ++i){
+    if (tokens[i].type == '*' && (i == 0 || tokens[i-1].type == '+' ||
+                                            tokens[i-1].type == '-' ||
+                                            tokens[i-1].type == '*' ||
+                                            tokens[i-1].type == '/')){
+      tokens[i].type = TK_DEREF;
+    }
+  }
+
 //PA1.2
   return eval(0, nr_token-1);
 //return 0;
