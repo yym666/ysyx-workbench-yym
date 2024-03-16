@@ -45,13 +45,13 @@ static void gen_num(){
 
 //PA1.2
 static void gen_rand_op(){
-  int op = rand() % 5;
+  int op = rand() % 4;
   switch (op){
     case 0: buf[pos++] = '+'; break;
     case 1: buf[pos++] = '-'; break;
     case 2: buf[pos++] = '*'; break;
     case 3: buf[pos++] = '/'; break;
-    case 4: buf[pos++] = '%'; break;
+    //case 4: buf[pos++] = '%'; break;
     default: assert(0); break;
   }
 }
@@ -94,7 +94,8 @@ int main(int argc, char *argv[]) {
     int result;
     ret = fscanf(fp, "%d", &result);
     pclose(fp);
-
+//PA1.2
+    if (result < 0 || pos > 60) continue;
     printf("%u %s\n", result, buf);
   }
   return 0;

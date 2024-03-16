@@ -89,7 +89,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[64] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -116,13 +116,19 @@ static bool make_token(char *e) {
          */
 //PA1.2
         if (substr_len > 32) assert(0);
-        
+
         switch (rules[i].token_type) {
 //PA1.2
           case TK_NOTYPE: 
             break;
           default: 
-            strcpy(tokens[nr_token].str, substr_start);
+        //printf("%d %lu %s\n", substr_len, sizeof(char), substr_start);
+            //for (int j = 0; j < substr_len; ++j){
+            //  tokens[nr_token].str[j] = substr_start[j];
+            //}
+            strncpy(tokens[nr_token].str, substr_start, sizeof(char) * substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+        //printf("%s\n", tokens[nr_token].str);
             tokens[nr_token++].type = rules[i].token_type;
         }
         break;
@@ -172,12 +178,13 @@ int get_main_opt(int p, int q){
     if (qt_cnt < 0) assert(0);
     if (qt_cnt > 0) continue;
     switch(tokens[i].type){
+      case TK_NUM: break;
       case '+': case '-':
-        if (ret == 0 || level > 1) 
+        if (ret == 0 || level >= 1) 
           ret = i, level = 1; 
         break;
       case '*': case '/': 
-        if (ret == 0 || level > 2) 
+        if (ret == 0 || level >= 2) 
           ret = i, level = 2;
         break;
       case TK_EQ: case TK_NEQ:
@@ -245,6 +252,8 @@ word_t expr(char *e, bool *success) {
     return 0;
   }
   
+  printf("nr_token = %d, %s\n", nr_token, tokens[0].str);
+
   /* TODO: Insert codes to evaluate the expression. */
 //PA1.3
   for (int i = 0; i < nr_token; ++i){
@@ -266,8 +275,9 @@ void expr_test(){
   FILE *fp = fopen("tools/gen-expr/build/input","r");
   assert(fp != NULL);
 
-  char buf[9999];
-  while (fgets(buf, 9999, fp)){
+  char buf[65535];
+  int cnt = 0;
+  while (fgets(buf, 65535, fp)){
     word_t answer = atoi(strtok(buf, " "));
     char *e = strtok(NULL, "\n");
     bool success = true;
@@ -279,6 +289,10 @@ void expr_test(){
       Log("Expr test failure!");
       assert(0);
     } 
+    else{
+      ++cnt;
+      Log("test NO.%d passed!\n", cnt);
+    }
   }
   fclose(fp);
   Log("Expr test Passed!");

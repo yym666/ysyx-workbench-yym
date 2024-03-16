@@ -56,6 +56,8 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+//PA1.0
+  set_nemu_state(4, 0, 0);
   return -1;
 }
 
