@@ -24,12 +24,14 @@
 
 enum {
   TYPE_2RI12, TYPE_1RI20,
+  TYPE_I,
   TYPE_N, // none
 };
 
 #define src1R()  do { *src1 = R(rj); } while (0)
 #define simm12() do { *imm = SEXT(BITS(i, 21, 10), 12); } while (0)
 #define simm20() do { *imm = SEXT(BITS(i, 24, 5), 20) << 12; } while (0)
+#define imm12() do {*imm = BITS(i, 31, 20);} while(0)
 
 static void decode_operand(Decode *s, int *rd_, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst.val;
@@ -38,10 +40,12 @@ static void decode_operand(Decode *s, int *rd_, word_t *src1, word_t *src2, word
   switch (type) {
     case TYPE_1RI20: simm20(); src1R(); break;
     case TYPE_2RI12: simm12(); src1R(); break;
+    case TYPE_I    : src1R(); imm12(); break;
   }
 }
 
 static int decode_exec(Decode *s) {
+  printf("\nADFSDAFEFEFWEF\n\n");
   int rd = 0;
   word_t src1 = 0, src2 = 0, imm = 0;
   s->dnpc = s->snpc;
@@ -56,6 +60,8 @@ static int decode_exec(Decode *s) {
   INSTPAT("0001110 ????? ????? ????? ????? ?????" , pcaddu12i, 1RI20 , R(rd) = s->pc + imm);
   INSTPAT("0010100010 ???????????? ????? ?????"   , ld.w     , 2RI12 , R(rd) = Mr(src1 + imm, 4));
   INSTPAT("0010100110 ???????????? ????? ?????"   , st.w     , 2RI12 , Mw(src1 + imm, 4, R(rd)));
+
+  INSTPAT("??????? ????? ????? 000 ????? 0010011" , addi     , I     , R(rd) = src1 + imm);
 
   INSTPAT("0000 0000 0010 10100 ????? ????? ?????", break    , N     , NEMUTRAP(s->pc, R(4))); // R(4) is $a0
   INSTPAT("????????????????? ????? ????? ?????"   , inv      , N     , INV(s->pc));
