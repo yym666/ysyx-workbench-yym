@@ -57,7 +57,7 @@ static struct rule {
   {"0x[a-fA-F0-9]{8}", TK_HEX},
   {"[0-9]+", TK_NUM},
   {"[a-zA-Z][\\w]*", TK_VAR},
-  {"^\\$(0|[xast][0-9]{1,2}|ra|sp|gp|tp)", TK_REG},
+  {"^\\$(0|[xast][0-9]{1,2}|ra|sp|gp|tp|pc)", TK_REG},
   {"\\(", '('},
   {"\\)", ')'},
   {"&&", TK_AND}
@@ -122,13 +122,8 @@ static bool make_token(char *e) {
           case TK_NOTYPE: 
             break;
           default: 
-        //printf("%d %lu %s\n", substr_len, sizeof(char), substr_start);
-            //for (int j = 0; j < substr_len; ++j){
-            //  tokens[nr_token].str[j] = substr_start[j];
-            //}
             strncpy(tokens[nr_token].str, substr_start, sizeof(char) * substr_len);
             tokens[nr_token].str[substr_len] = '\0';
-        //printf("%s\n", tokens[nr_token].str);
             tokens[nr_token++].type = rules[i].token_type;
         }
         break;
@@ -252,8 +247,6 @@ word_t expr(char *e, bool *success) {
     return 0;
   }
   
- // printf("nr_token = %d, %s\n", nr_token, tokens[0].str);
-
   /* TODO: Insert codes to evaluate the expression. */
 //PA1.3
   for (int i = 0; i < nr_token; ++i){
@@ -281,11 +274,9 @@ void expr_test(){
     word_t answer = atoi(strtok(buf, " "));
     char *e = strtok(NULL, "\n");
     bool success = true;
-    printf("%s\n", e);
     word_t result = expr(e, &success);
     if (result != answer){
       fclose(fp);
-      printf("%d %d\n", answer, result);
       Log("Expr test failure!");
       assert(0);
     } 

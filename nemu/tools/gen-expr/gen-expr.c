@@ -44,25 +44,33 @@ static void gen_num(){
 }
 
 //PA1.2
-static void gen_rand_op(){
+static int gen_rand_op(){
   int op = rand() % 4;
   switch (op){
     case 0: buf[pos++] = '+'; break;
     case 1: buf[pos++] = '-'; break;
     case 2: buf[pos++] = '*'; break;
-    case 3: buf[pos++] = '/'; break;
+    case 3: buf[pos++] = '/'; return 1;
     //case 4: buf[pos++] = '%'; break;
     default: assert(0); break;
   }
+  return 0;
 }
 
 static void gen_rand_expr() {
 //PA1.2
 //  buf[0] = '\0';
+  int is_div;
   switch (rand() % 3) {
   case 0: gen_num(); break;
   case 1: buf[pos++] = '('; gen_rand_expr(); buf[pos++] = ')'; break;
-  default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
+  default:  gen_rand_expr(); 
+            is_div = gen_rand_op(); 
+            if (is_div) 
+              buf[pos++] = '1', 
+              buf[pos++] = '+';
+            gen_rand_expr(); 
+            break;
   }
 }
 
@@ -78,6 +86,7 @@ int main(int argc, char *argv[]) {
     pos = 0;
     gen_rand_expr();
     buf[pos] = '\0';
+    if (pos > 60) continue;
     sprintf(code_buf, code_format, buf);
 
     FILE *fp = fopen("/tmp/.code.c", "w");
@@ -95,7 +104,7 @@ int main(int argc, char *argv[]) {
     ret = fscanf(fp, "%d", &result);
     pclose(fp);
 //PA1.2
-    if (result < 0 || pos > 60) continue;
+    if (result < 0 || pos > 30) continue;
     printf("%u %s\n", result, buf);
   }
   return 0;
