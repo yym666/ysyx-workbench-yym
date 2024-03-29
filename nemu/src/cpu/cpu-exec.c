@@ -34,6 +34,7 @@ static bool g_print_step = false;
 void device_update();
 //PA1.3
 void watchpoint();
+void iringbuf_display();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
@@ -73,6 +74,11 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #else
   p[0] = '\0'; // the upstream llvm does not support loongarch32r
 #endif
+#endif
+
+#ifdef CONFIG_IRINGBUF
+  void iringbuf_update(word_t pc, uint32_t inst);
+  iringbuf_update(s->pc, s->isa.inst.val);
 #endif
 }
 
@@ -114,6 +120,9 @@ void cpu_exec(uint64_t n) {
   uint64_t timer_start = get_time();
 
   execute(n);
+  
+  //just for test
+  iringbuf_display();
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
@@ -127,6 +136,11 @@ void cpu_exec(uint64_t n) {
            (nemu_state.halt_ret == 0 ? ANSI_FMT("HIT GOOD TRAP", ANSI_FG_GREEN) :
             ANSI_FMT("HIT BAD TRAP", ANSI_FG_RED))),
           nemu_state.halt_pc);
+      if (nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0){
+        #ifdef CONFIG_IRINGBUF_COND
+          if (IRINGBUF_COND) iringbuf_display();
+        #endif
+      }
       // fall through
     case NEMU_QUIT: statistic();
   }

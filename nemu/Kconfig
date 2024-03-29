@@ -105,6 +105,24 @@ config WATCHPOINT
   bool "Enable watchpoint"
   default y
 
+config IRINGBUF
+  bool "Enable itrace ring buffer"
+  default y
+
+config IRINGBUF_COND
+  depends on IRINGBUF
+  string "Only output ring buffer when the condition is true"
+  default "true"
+
+config MTRACE
+  bool "Enable memory tracer"
+  default y
+
+config MTRACE_COND
+  depends on MTRACE
+  string "Only output memory status when the condition is true"
+  default "true"
+
 config CC_OPT
   string
   default "-O0" if CC_O0
