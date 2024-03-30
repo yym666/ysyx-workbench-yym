@@ -8,7 +8,7 @@
 int printf(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
-  char out[9999];
+  char out[1024];
   int len = vsprintf(out, fmt, ap);
   for (int i = 0; i < len; ++i)
     putch(out[i]);

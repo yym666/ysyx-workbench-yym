@@ -13,6 +13,7 @@ int func_cnt;
 Symbols sym[SYM_NUM];
 
 void ftrace_init(const char* elf_file){
+    //printf("%s\n", elf_file);
     if (elf_file == NULL) assert(0);
     FILE *fp;
     fp = fopen(elf_file, "rb");

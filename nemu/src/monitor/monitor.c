@@ -150,6 +150,7 @@ void init_monitor(int argc, char *argv[]) {
 //PA1.2
   expr_test();
 
+  //printf("%s\n", elf_file);
   ftrace_init(elf_file);
 
   /* Display welcome message. */
