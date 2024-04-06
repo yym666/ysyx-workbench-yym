@@ -127,107 +127,267 @@ module IFU(	// @[<stdin>:3:10]
 endmodule
 
 module IDU(	// @[<stdin>:15:10]
-  input  [31:0] io_inst,	// @[cpu/src/stage/IDU.scala:10:16]
-                io_rs1_data,	// @[cpu/src/stage/IDU.scala:10:16]
-  output [4:0]  io_rs1_addr,	// @[cpu/src/stage/IDU.scala:10:16]
-                io_rs2_addr,	// @[cpu/src/stage/IDU.scala:10:16]
-                io_rd_addr,	// @[cpu/src/stage/IDU.scala:10:16]
-  output [31:0] io_op1_data,	// @[cpu/src/stage/IDU.scala:10:16]
-                io_op2_data	// @[cpu/src/stage/IDU.scala:10:16]
+  input  [31:0] io_inst,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_pc,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_rs1_data,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_rs2_data,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [4:0]  io_rs1_addr,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_rs2_addr,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_rd_addr,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [31:0] io_op1_data,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_op2_data,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_mem_data,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [4:0]  io_excode,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [2:0]  io_mem_op,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_reg_op,	// @[cpu/src/stage/IDU.scala:11:16]
+  output        io_halt,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_Store,	// @[cpu/src/stage/IDU.scala:11:16]
+                io_Load,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [4:0]  io_SL_len	// @[cpu/src/stage/IDU.scala:11:16]
 );
 
-  assign io_rs1_addr = io_inst[19:15];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:22:27]
-  assign io_rs2_addr = io_inst[24:20];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:23:27]
-  assign io_rd_addr = io_inst[11:7];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:24:27]
-  assign io_op1_data = io_rs1_data;	// @[<stdin>:15:10]
-  assign io_op2_data = {{20{io_inst[31]}}, io_inst[31:20]};	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:26:30, :27:{26,31,41}]
+  wire        _decode_T_1 = io_inst == 32'h100073;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_3 = io_inst[6:0] == 7'h17;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire [16:0] _GEN = {io_inst[31:25], io_inst[14:12], io_inst[6:0]};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_5 = _GEN == 17'h33;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_7 = _GEN == 17'h8033;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_9 = _GEN == 17'h3B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_11 = _GEN == 17'h333;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_13 = _GEN == 17'h233;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_15 = _GEN == 17'h433;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_17 = _GEN == 17'h4B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire [9:0]  _GEN_0 = {io_inst[14:12], io_inst[6:0]};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_19 = _GEN_0 == 10'h13;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_21 = _GEN_0 == 10'h23;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_23 = _GEN_0 == 10'h203;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _GEN_1 = _decode_T_21 | _decode_T_23;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_2 = _decode_T_19 | _GEN_1;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [1:0]  _GEN_3 =
+    _decode_T_1
+      ? 2'h0
+      : _decode_T_3
+          ? 2'h2
+          : {1'h0,
+             _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13
+               | _decode_T_15 | _decode_T_17 | _GEN_2};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [2:0]  _decode_T_57 = {1'h0, _decode_T_23, 1'h0};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_4 =
+    _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13 | _decode_T_15
+    | _decode_T_17;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [2:0]  decode_2 =
+    _decode_T_1
+      ? 3'h0
+      : _decode_T_3
+          ? 3'h3
+          : _GEN_4 ? 3'h1 : _decode_T_19 ? 3'h2 : _decode_T_21 ? 3'h4 : _decode_T_57;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_5 =
+    _decode_T_1 | _decode_T_3 | _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11
+    | _decode_T_13 | _decode_T_15 | _decode_T_17 | _decode_T_19;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [2:0]  decode_3 = _GEN_5 ? 3'h0 : _decode_T_21 ? 3'h1 : _decode_T_57;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_rs1_addr = io_inst[19:15];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:33:27]
+  assign io_rs2_addr = io_inst[24:20];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:34:27]
+  assign io_rd_addr = io_inst[11:7];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:35:27]
+  assign io_op1_data = _GEN_3 == 2'h1 ? io_rs1_data : _GEN_3 == 2'h2 ? io_pc : 32'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:68:18, :69:18, src/main/scala/chisel3/util/Lookup.scala:34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_op2_data =
+    decode_2 == 3'h3
+      ? {io_inst[31:12], 12'h0}
+      : decode_2 == 3'h2
+          ? {{20{io_inst[31]}}, io_inst[31:20]}
+          : decode_2 == 3'h4
+              ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
+              : decode_2 == 3'h1 ? io_rs2_data : 32'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:35:27, :37:30, :38:{26,31,41}, :39:30, :40:{26,38}, :41:34, :42:{26,31,41}, :75:18, :76:18, :77:18, :78:18, src/main/scala/chisel3/util/Lookup.scala:34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_mem_data = {24'h0, io_rs2_data[7:0]};	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:87:{23,28,50}]
+  assign io_excode =
+    _decode_T_1
+      ? 5'h0
+      : _decode_T_3 | _decode_T_5
+          ? 5'h1
+          : _decode_T_7
+              ? 5'h2
+              : _decode_T_9
+                  ? 5'h3
+                  : _decode_T_11
+                      ? 5'h4
+                      : _decode_T_13
+                          ? 5'h5
+                          : _decode_T_15 ? 5'h6 : _decode_T_17 ? 5'h7 : {4'h0, _GEN_2};	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_mem_op = decode_3;	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_reg_op =
+    _decode_T_1
+      ? 3'h0
+      : _decode_T_3 | _GEN_4
+          ? 3'h1
+          : _decode_T_19 | _decode_T_21 ? 3'h0 : {2'h0, _decode_T_23};	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_halt =
+    (_decode_T_1
+       ? 8'h0
+       : _decode_T_3
+           ? 8'h32
+           : _decode_T_5
+               ? 8'h1
+               : _decode_T_7
+                   ? 8'h2
+                   : _decode_T_9
+                       ? 8'h3
+                       : _decode_T_11
+                           ? 8'h4
+                           : _decode_T_13
+                               ? 8'h5
+                               : _decode_T_15
+                                   ? 8'h6
+                                   : _decode_T_17
+                                       ? 8'h7
+                                       : _decode_T_19
+                                           ? 8'h11
+                                           : _decode_T_21
+                                               ? 8'h1E
+                                               : _decode_T_23 ? 8'h1B : 8'h11) == 8'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:89:35, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_Store = decode_3[1:0] == 2'h1;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:81:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_Load = decode_3[1:0] == 2'h2;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:82:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_SL_len = {1'h0, _GEN_5 ? 4'h0 : {3'h0, _GEN_1}};	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:83:15, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
 endmodule
 
-module EXU(	// @[<stdin>:45:10]
-  input  [31:0] io_data1,	// @[cpu/src/stage/EXU.scala:10:16]
-                io_data2,	// @[cpu/src/stage/EXU.scala:10:16]
-  output [31:0] io_alu_res	// @[cpu/src/stage/EXU.scala:10:16]
+module EXU(	// @[<stdin>:181:10]
+  input  [31:0] io_data1,	// @[cpu/src/stage/EXU.scala:12:16]
+                io_data2,	// @[cpu/src/stage/EXU.scala:12:16]
+  input  [4:0]  io_excode,	// @[cpu/src/stage/EXU.scala:12:16]
+  input  [2:0]  io_mem_op,	// @[cpu/src/stage/EXU.scala:12:16]
+  output [31:0] io_alu_res,	// @[cpu/src/stage/EXU.scala:12:16]
+                io_waddr	// @[cpu/src/stage/EXU.scala:12:16]
 );
 
-  assign io_alu_res = io_data1 + io_data2;	// @[<stdin>:45:10, cpu/src/stage/EXU.scala:16:28]
+  wire [63:0] _GEN = {32'h0, io_data1} * {32'h0, io_data2};	// @[cpu/src/stage/EXU.scala:29:73, src/main/scala/chisel3/util/Mux.scala:141:16]
+  wire [31:0] _io_alu_res_output =
+    io_excode == 5'h1
+      ? io_data1 + io_data2
+      : io_excode == 5'h2
+          ? io_data1 - io_data2
+          : io_excode == 5'h3
+              ? io_data1 & io_data2
+              : io_excode == 5'h4
+                  ? io_data1 | io_data2
+                  : io_excode == 5'h5
+                      ? io_data1 ^ io_data2
+                      : io_excode == 5'h6
+                          ? io_data1 * io_data2
+                          : io_excode == 5'h7 ? _GEN[63:32] : 32'h0;	// @[cpu/src/stage/EXU.scala:23:{24,50}, :24:{24,50}, :25:{24,50}, :26:{24,50}, :27:{24,50}, :28:{24,50}, :29:{24,73,106}, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_alu_res = _io_alu_res_output;	// @[<stdin>:181:10, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_waddr = io_mem_op == 3'h1 | io_mem_op == 3'h2 ? _io_alu_res_output : 32'h0;	// @[<stdin>:181:10, cpu/src/stage/EXU.scala:35:24, :36:24, src/main/scala/chisel3/util/Mux.scala:141:16]
 endmodule
 
-module GPR(	// @[<stdin>:54:10]
-  input         clock,	// @[<stdin>:55:11]
+module GPR(	// @[<stdin>:221:10]
+  input         clock,	// @[<stdin>:222:11]
                 io_wen,	// @[cpu/src/unit/GPR.scala:10:16]
   input  [4:0]  io_raddr1,	// @[cpu/src/unit/GPR.scala:10:16]
                 io_raddr2,	// @[cpu/src/unit/GPR.scala:10:16]
                 io_waddr,	// @[cpu/src/unit/GPR.scala:10:16]
   input  [31:0] io_wdata,	// @[cpu/src/unit/GPR.scala:10:16]
-  output [31:0] io_rdata1	// @[cpu/src/unit/GPR.scala:10:16]
+  output [31:0] io_rdata1,	// @[cpu/src/unit/GPR.scala:10:16]
+                io_rdata2	// @[cpu/src/unit/GPR.scala:10:16]
 );
 
   wire [31:0] _regs_ext_R0_data;	// @[cpu/src/unit/GPR.scala:19:19]
+  wire [31:0] _regs_ext_R1_data;	// @[cpu/src/unit/GPR.scala:19:19]
   regs_combMem regs_ext (	// @[cpu/src/unit/GPR.scala:19:19]
     .R0_addr (io_raddr1),
-    .R0_en   (1'h1),	// @[<stdin>:54:10]
+    .R0_en   (1'h1),	// @[<stdin>:221:10]
     .R0_clk  (clock),
     .R1_addr (io_raddr2),
-    .R1_en   (1'h1),	// @[<stdin>:54:10]
+    .R1_en   (1'h1),	// @[<stdin>:221:10]
     .R1_clk  (clock),
     .W0_addr (io_waddr),
     .W0_en   (io_wen & (|io_waddr)),	// @[cpu/src/unit/GPR.scala:22:{18,30}]
     .W0_clk  (clock),
     .W0_data (io_wdata),
     .R0_data (_regs_ext_R0_data),
-    .R1_data (/* unused */)
+    .R1_data (_regs_ext_R1_data)
   );
-  assign io_rdata1 = io_raddr1 == 5'h0 ? 32'h0 : _regs_ext_R0_data;	// @[<stdin>:54:10, cpu/src/unit/GPR.scala:19:19, :20:{21,33}, :21:21]
+  assign io_rdata1 = io_raddr1 == 5'h0 ? 32'h0 : _regs_ext_R0_data;	// @[<stdin>:221:10, cpu/src/unit/GPR.scala:19:19, :20:{21,33}, :21:21]
+  assign io_rdata2 = io_raddr2 == 5'h0 ? 32'h0 : _regs_ext_R1_data;	// @[<stdin>:221:10, cpu/src/unit/GPR.scala:19:19, :20:33, :21:{21,33}]
 endmodule
 
-module TOP(	// @[<stdin>:75:10]
-  input         clock,	// @[<stdin>:76:11]
-                reset,	// @[<stdin>:77:11]
-                io_wen,	// @[cpu/src/TOP.scala:12:16]
-  input  [31:0] io_inst,	// @[cpu/src/TOP.scala:12:16]
-  output [31:0] io_pc,	// @[cpu/src/TOP.scala:12:16]
-  output [4:0]  io_rs1,	// @[cpu/src/TOP.scala:12:16]
-                io_rs2,	// @[cpu/src/TOP.scala:12:16]
-  output [31:0] io_res	// @[cpu/src/TOP.scala:12:16]
+module TOP(	// @[<stdin>:242:10]
+  input         clock,	// @[<stdin>:243:11]
+                reset,	// @[<stdin>:244:11]
+  input  [31:0] io_inst,	// @[cpu/src/TOP.scala:15:16]
+                io_data_sram_rdata,	// @[cpu/src/TOP.scala:15:16]
+  output [31:0] io_pc,	// @[cpu/src/TOP.scala:15:16]
+  output [4:0]  io_rs1,	// @[cpu/src/TOP.scala:15:16]
+                io_rs2,	// @[cpu/src/TOP.scala:15:16]
+  output [31:0] io_data1,	// @[cpu/src/TOP.scala:15:16]
+                io_data2,	// @[cpu/src/TOP.scala:15:16]
+  output [4:0]  io_rd,	// @[cpu/src/TOP.scala:15:16]
+  output [31:0] io_res,	// @[cpu/src/TOP.scala:15:16]
+  output        io_halt,	// @[cpu/src/TOP.scala:15:16]
+                io_Store,	// @[cpu/src/TOP.scala:15:16]
+                io_Load,	// @[cpu/src/TOP.scala:15:16]
+  output [4:0]  io_SL_len,	// @[cpu/src/TOP.scala:15:16]
+  output [31:0] io_data_sram_addr,	// @[cpu/src/TOP.scala:15:16]
+                io_data_sram_wdata	// @[cpu/src/TOP.scala:15:16]
 );
 
-  wire [31:0] _GPR_io_rdata1;	// @[cpu/src/TOP.scala:32:21]
-  wire [31:0] _EXU_io_alu_res;	// @[cpu/src/TOP.scala:31:21]
-  wire [4:0]  _IDU_io_rs1_addr;	// @[cpu/src/TOP.scala:30:21]
-  wire [4:0]  _IDU_io_rs2_addr;	// @[cpu/src/TOP.scala:30:21]
-  wire [4:0]  _IDU_io_rd_addr;	// @[cpu/src/TOP.scala:30:21]
-  wire [31:0] _IDU_io_op1_data;	// @[cpu/src/TOP.scala:30:21]
-  wire [31:0] _IDU_io_op2_data;	// @[cpu/src/TOP.scala:30:21]
-  IFU IFU (	// @[cpu/src/TOP.scala:29:21]
+  wire [31:0] _GPR_io_rdata1;	// @[cpu/src/TOP.scala:39:21]
+  wire [31:0] _GPR_io_rdata2;	// @[cpu/src/TOP.scala:39:21]
+  wire [31:0] _EXU_io_alu_res;	// @[cpu/src/TOP.scala:38:21]
+  wire [4:0]  _IDU_io_rs1_addr;	// @[cpu/src/TOP.scala:37:21]
+  wire [4:0]  _IDU_io_rs2_addr;	// @[cpu/src/TOP.scala:37:21]
+  wire [4:0]  _IDU_io_rd_addr;	// @[cpu/src/TOP.scala:37:21]
+  wire [31:0] _IDU_io_op1_data;	// @[cpu/src/TOP.scala:37:21]
+  wire [31:0] _IDU_io_op2_data;	// @[cpu/src/TOP.scala:37:21]
+  wire [4:0]  _IDU_io_excode;	// @[cpu/src/TOP.scala:37:21]
+  wire [2:0]  _IDU_io_mem_op;	// @[cpu/src/TOP.scala:37:21]
+  wire [2:0]  _IDU_io_reg_op;	// @[cpu/src/TOP.scala:37:21]
+  wire        _IDU_io_Load;	// @[cpu/src/TOP.scala:37:21]
+  wire [31:0] _IFU_io_pc;	// @[cpu/src/TOP.scala:36:21]
+  IFU IFU (	// @[cpu/src/TOP.scala:36:21]
     .clock (clock),
     .reset (reset),
-    .io_pc (io_pc)
+    .io_pc (_IFU_io_pc)
   );
-  IDU IDU (	// @[cpu/src/TOP.scala:30:21]
+  IDU IDU (	// @[cpu/src/TOP.scala:37:21]
     .io_inst     (io_inst),
-    .io_rs1_data (_GPR_io_rdata1),	// @[cpu/src/TOP.scala:32:21]
+    .io_pc       (_IFU_io_pc),	// @[cpu/src/TOP.scala:36:21]
+    .io_rs1_data (_GPR_io_rdata1),	// @[cpu/src/TOP.scala:39:21]
+    .io_rs2_data (_GPR_io_rdata2),	// @[cpu/src/TOP.scala:39:21]
     .io_rs1_addr (_IDU_io_rs1_addr),
     .io_rs2_addr (_IDU_io_rs2_addr),
     .io_rd_addr  (_IDU_io_rd_addr),
     .io_op1_data (_IDU_io_op1_data),
-    .io_op2_data (_IDU_io_op2_data)
+    .io_op2_data (_IDU_io_op2_data),
+    .io_mem_data (io_data_sram_wdata),
+    .io_excode   (_IDU_io_excode),
+    .io_mem_op   (_IDU_io_mem_op),
+    .io_reg_op   (_IDU_io_reg_op),
+    .io_halt     (io_halt),
+    .io_Store    (io_Store),
+    .io_Load     (_IDU_io_Load),
+    .io_SL_len   (io_SL_len)
   );
-  EXU EXU (	// @[cpu/src/TOP.scala:31:21]
-    .io_data1   (_IDU_io_op1_data),	// @[cpu/src/TOP.scala:30:21]
-    .io_data2   (_IDU_io_op2_data),	// @[cpu/src/TOP.scala:30:21]
-    .io_alu_res (_EXU_io_alu_res)
+  EXU EXU (	// @[cpu/src/TOP.scala:38:21]
+    .io_data1   (_IDU_io_op1_data),	// @[cpu/src/TOP.scala:37:21]
+    .io_data2   (_IDU_io_op2_data),	// @[cpu/src/TOP.scala:37:21]
+    .io_excode  (_IDU_io_excode),	// @[cpu/src/TOP.scala:37:21]
+    .io_mem_op  (_IDU_io_mem_op),	// @[cpu/src/TOP.scala:37:21]
+    .io_alu_res (_EXU_io_alu_res),
+    .io_waddr   (io_data_sram_addr)
   );
-  GPR GPR (	// @[cpu/src/TOP.scala:32:21]
+  GPR GPR (	// @[cpu/src/TOP.scala:39:21]
     .clock     (clock),
-    .io_wen    (io_wen),
-    .io_raddr1 (_IDU_io_rs1_addr),	// @[cpu/src/TOP.scala:30:21]
-    .io_raddr2 (_IDU_io_rs2_addr),	// @[cpu/src/TOP.scala:30:21]
-    .io_waddr  (_IDU_io_rd_addr),	// @[cpu/src/TOP.scala:30:21]
-    .io_wdata  (_EXU_io_alu_res),	// @[cpu/src/TOP.scala:31:21]
-    .io_rdata1 (_GPR_io_rdata1)
+    .io_wen    (_IDU_io_reg_op == 3'h1),	// @[cpu/src/TOP.scala:37:21, :45:28]
+    .io_raddr1 (_IDU_io_rs1_addr),	// @[cpu/src/TOP.scala:37:21]
+    .io_raddr2 (_IDU_io_rs2_addr),	// @[cpu/src/TOP.scala:37:21]
+    .io_waddr  (_IDU_io_rd_addr),	// @[cpu/src/TOP.scala:37:21]
+    .io_wdata  (_IDU_io_Load ? io_data_sram_rdata : _EXU_io_alu_res),	// @[cpu/src/TOP.scala:37:21, :38:21, src/main/scala/chisel3/util/Mux.scala:141:16]
+    .io_rdata1 (_GPR_io_rdata1),
+    .io_rdata2 (_GPR_io_rdata2)
   );
-  assign io_rs1 = _IDU_io_rs1_addr;	// @[<stdin>:75:10, cpu/src/TOP.scala:30:21]
-  assign io_rs2 = _IDU_io_rs2_addr;	// @[<stdin>:75:10, cpu/src/TOP.scala:30:21]
-  assign io_res = _EXU_io_alu_res;	// @[<stdin>:75:10, cpu/src/TOP.scala:31:21]
+  assign io_pc = _IFU_io_pc;	// @[<stdin>:242:10, cpu/src/TOP.scala:36:21]
+  assign io_rs1 = _IDU_io_rs1_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_rs2 = _IDU_io_rs2_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_data1 = _IDU_io_op1_data;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_data2 = _IDU_io_op2_data;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_rd = _IDU_io_rd_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_res = _EXU_io_alu_res;	// @[<stdin>:242:10, cpu/src/TOP.scala:38:21]
+  assign io_Load = _IDU_io_Load;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
 endmodule
 

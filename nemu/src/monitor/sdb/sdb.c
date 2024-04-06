@@ -27,8 +27,8 @@ void init_regex();
 void init_wp_pool();
 //PA1.3
 void wp_display();
-void set_watchpoint();
-void del_watchpoint();
+void set_watchpoint(char* args);
+void del_watchpoint(char* s);
 void watchpoint();
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
