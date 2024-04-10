@@ -50,7 +50,10 @@ object InstPat {
     val BGE     = BitPat("b??????_??????_?????_101_?????_1100011")
     val BGEU    = BitPat("b??????_??????_?????_111_?????_1100011")
 
-    val LEN_EXC     = 5
+    val JAL     = BitPat("b??????_??????_?????_???_?????_1101111")
+    val JALR    = BitPat("b??????_??????_?????_000_?????_1100111")
+   
+    val LEN_EXC     = 6
     val ALU_ERR     = 0.U(LEN_EXC.W)
     val ALU_ADD     = 1.U(LEN_EXC.W)
     val ALU_SUB     = 2.U(LEN_EXC.W)
@@ -62,6 +65,21 @@ object InstPat {
     val ALU_SLL     = 8.U(LEN_EXC.W)
     val ALU_SRL     = 9.U(LEN_EXC.W)
     val ALU_SRA     = 10.U(LEN_EXC.W)
+    val ALU_SLT     = 11.U(LEN_EXC.W)
+    val ALU_SLTU    = 12.U(LEN_EXC.W)
+    val ALU_REM     = 13.U(LEN_EXC.W)
+    val ALU_REMU    = 14.U(LEN_EXC.W)
+    val ALU_DIV     = 15.U(LEN_EXC.W)
+    val ALU_DIVU    = 16.U(LEN_EXC.W)
+    val ALU_JALR    = 17.U(LEN_EXC.W)
+    val ALU_JAL     = 18.U(LEN_EXC.W)
+    
+    val BRC_BEQ     = 20.U(LEN_EXC.W)
+    val BRC_BNE     = 21.U(LEN_EXC.W)
+    val BRC_BLT     = 22.U(LEN_EXC.W)
+    val BRC_BLTU    = 23.U(LEN_EXC.W)
+    val BRC_BGE     = 24.U(LEN_EXC.W)
+    val BRC_BGEU    = 25.U(LEN_EXC.W)
 
     val LEN_OPT = 3
     val OP1_ERR = 0.U(LEN_OPT.W)
@@ -73,6 +91,7 @@ object InstPat {
     val OP2_IMI = 2.U(LEN_OPT.W)
     val OP2_IMU = 3.U(LEN_OPT.W)
     val OP2_IMS = 4.U(LEN_OPT.W)
+    val OP2_IMJ = 5.U(LEN_OPT.W)
 
     val LEN_MEM = 3
     val MEM_ERR = 0.U(LEN_MEM.W)

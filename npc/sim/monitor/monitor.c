@@ -22,10 +22,13 @@ void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
-// void init_disasm(const char *triple);
+void init_disasm(const char *triple);
 void expr_test();
+void sim_init();
 
-// void ftrace_init(const char* elf_file);
+bool ftrace_flag = false;
+
+void ftrace_init(const char* elf_file);
 
 static void welcome() {
   Log("Trace: %s", MUXDEF(CONFIG_TRACE, ANSI_FMT("ON", ANSI_FG_GREEN), ANSI_FMT("OFF", ANSI_FG_RED)));
@@ -52,6 +55,7 @@ static char *elf_file = NULL;
 static int difftest_port = 1234;
 
 static long load_img() {
+  printf("img_file: %s\n", img_file);
   if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
@@ -85,12 +89,13 @@ static int parse_args(int argc, char *argv[]) {
   };
   int o;
   while ( (o = getopt_long(argc, argv, "-bhl:d:p:e:", table, NULL)) != -1) {
+    printf("opt: %s\n", optarg);
     switch (o) {
       case 'b': sdb_set_batch_mode(); break;
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 'e': elf_file = optarg; break;
+      case 'e': elf_file = optarg; ftrace_flag = true; break;
       case 1: img_file = optarg; return 0;
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -133,25 +138,28 @@ void init_monitor(int argc, char *argv[]) {
   /* Initialize differential testing. */
   // init_difftest(diff_so_file, img_size, difftest_port);
 
+  //sim_init();
+
   /* Initialize the simple debugger. */
   init_sdb();
 
-// #ifndef CONFIG_ISA_loongarch32r
-//   IFDEF(CONFIG_ITRACE, init_disasm(
-//     MUXDEF(CONFIG_ISA_x86,     "i686",
-//     MUXDEF(CONFIG_ISA_mips32,  "mipsel",
-//     MUXDEF(CONFIG_ISA_riscv,
-//       MUXDEF(CONFIG_RV64,      "riscv64",
-//                                "riscv32"),
-//                                "bad"))) "-pc-linux-gnu"
-//   ));
-// #endif
+#ifndef CONFIG_ISA_loongarch32r
+  IFDEF(CONFIG_ITRACE, init_disasm(
+    MUXDEF(CONFIG_ISA_x86,     "i686",
+    MUXDEF(CONFIG_ISA_mips32,  "mipsel",
+    MUXDEF(CONFIG_ISA_riscv,
+      MUXDEF(CONFIG_RV64,      "riscv64",
+                               "riscv32"),
+                               "bad"))) "-pc-linux-gnu"
+  ));
+#endif
 
 //PA1.2
-  expr_test();
+  //expr_test();
 
-  //printf("%s\n", elf_file);
-  //ftrace_init(elf_file);
+  printf("%s\n", elf_file);
+  if (ftrace_flag)
+    ftrace_init(elf_file);
 
   /* Display welcome message. */
   welcome();

@@ -45,7 +45,6 @@ static void decode_operand(Decode *s, int *rd_, word_t *src1, word_t *src2, word
 }
 
 static int decode_exec(Decode *s) {
-  printf("\nADFSDAFEFEFWEF\n\n");
   int rd = 0;
   word_t src1 = 0, src2 = 0, imm = 0;
   s->dnpc = s->snpc;

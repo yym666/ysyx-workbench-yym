@@ -39,7 +39,7 @@ void ftrace_init(const char* elf_file){
         if (fread(&sec_hd, sizeof(Elf32_Shdr), 1, fp) <= 0)
             assert(0);
         if (sec_hd.sh_type == SHT_STRTAB){
-            string_table = malloc(sec_hd.sh_size);
+            string_table = (char *)malloc(sec_hd.sh_size);
             fseek(fp, sec_hd.sh_offset, SEEK_SET);
             if (fread(string_table, sec_hd.sh_size, 1, fp) <= 0)
                 assert(0);

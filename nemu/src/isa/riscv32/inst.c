@@ -143,7 +143,6 @@ static int decode_exec(Decode *s) {
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0
-  Log("res: %08x", R(rd));
   return 0;
 }
 

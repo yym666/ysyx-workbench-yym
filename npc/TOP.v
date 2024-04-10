@@ -95,15 +95,19 @@ endmodule
 module IFU(	// @[<stdin>:3:10]
   input         clock,	// @[<stdin>:4:11]
                 reset,	// @[<stdin>:5:11]
+                io_br_taken,	// @[cpu/src/stage/IFU.scala:10:16]
+  input  [31:0] io_br_target,	// @[cpu/src/stage/IFU.scala:10:16]
   output [31:0] io_pc	// @[cpu/src/stage/IFU.scala:10:16]
 );
 
-  reg [31:0] pc_reg;	// @[cpu/src/stage/IFU.scala:13:25]
+  reg [31:0] pc_reg;	// @[cpu/src/stage/IFU.scala:15:25]
   always @(posedge clock) begin	// @[<stdin>:4:11]
     if (reset)	// @[<stdin>:4:11]
-      pc_reg <= 32'h80000000;	// @[cpu/src/stage/IFU.scala:13:25]
-    else	// @[<stdin>:4:11]
-      pc_reg <= pc_reg + 32'h4;	// @[cpu/src/stage/IFU.scala:13:25, :14:25]
+      pc_reg <= 32'h80000000;	// @[cpu/src/stage/IFU.scala:15:25]
+    else if (io_br_taken)	// @[cpu/src/stage/IFU.scala:10:16]
+      pc_reg <= io_br_target;	// @[cpu/src/stage/IFU.scala:15:25]
+    else	// @[cpu/src/stage/IFU.scala:10:16]
+      pc_reg <= pc_reg + 32'h4;	// @[cpu/src/stage/IFU.scala:15:25, :16:69]
   end // always @(posedge)
   `ifdef ENABLE_INITIAL_REG_	// @[<stdin>:3:10]
     `ifdef FIRRTL_BEFORE_INITIAL	// @[<stdin>:3:10]
@@ -116,17 +120,17 @@ module IFU(	// @[<stdin>:3:10]
       `endif // INIT_RANDOM_PROLOG_
       `ifdef RANDOMIZE_REG_INIT	// @[<stdin>:3:10]
         _RANDOM[/*Zero width*/ 1'b0] = `RANDOM;	// @[<stdin>:3:10]
-        pc_reg = _RANDOM[/*Zero width*/ 1'b0];	// @[<stdin>:3:10, cpu/src/stage/IFU.scala:13:25]
+        pc_reg = _RANDOM[/*Zero width*/ 1'b0];	// @[<stdin>:3:10, cpu/src/stage/IFU.scala:15:25]
       `endif // RANDOMIZE_REG_INIT
     end // initial
     `ifdef FIRRTL_AFTER_INITIAL	// @[<stdin>:3:10]
       `FIRRTL_AFTER_INITIAL	// @[<stdin>:3:10]
     `endif // FIRRTL_AFTER_INITIAL
   `endif // ENABLE_INITIAL_REG_
-  assign io_pc = pc_reg;	// @[<stdin>:3:10, cpu/src/stage/IFU.scala:13:25]
+  assign io_pc = pc_reg;	// @[<stdin>:3:10, cpu/src/stage/IFU.scala:15:25]
 endmodule
 
-module IDU(	// @[<stdin>:15:10]
+module IDU(	// @[<stdin>:17:10]
   input  [31:0] io_inst,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_pc,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_rs1_data,	// @[cpu/src/stage/IDU.scala:11:16]
@@ -137,15 +141,18 @@ module IDU(	// @[<stdin>:15:10]
   output [31:0] io_op1_data,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_op2_data,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_mem_data,	// @[cpu/src/stage/IDU.scala:11:16]
-  output [4:0]  io_excode,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [5:0]  io_excode,	// @[cpu/src/stage/IDU.scala:11:16]
   output [2:0]  io_mem_op,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_reg_op,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [7:0]  io_inst_code,	// @[cpu/src/stage/IDU.scala:11:16]
+  output [31:0] io_br_target,	// @[cpu/src/stage/IDU.scala:11:16]
   output        io_halt,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_Store,	// @[cpu/src/stage/IDU.scala:11:16]
                 io_Load,	// @[cpu/src/stage/IDU.scala:11:16]
   output [4:0]  io_SL_len	// @[cpu/src/stage/IDU.scala:11:16]
 );
 
+  reg  [31:0] casez_tmp;	// @[src/main/scala/chisel3/util/Mux.scala:141:16]
   wire        _decode_T_1 = io_inst == 32'h100073;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
   wire        _decode_T_3 = io_inst[6:0] == 7'h17;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
   wire [16:0] _GEN = {io_inst[31:25], io_inst[14:12], io_inst[6:0]};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
@@ -156,127 +163,384 @@ module IDU(	// @[<stdin>:15:10]
   wire        _decode_T_13 = _GEN == 17'h233;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
   wire        _decode_T_15 = _GEN == 17'h433;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
   wire        _decode_T_17 = _GEN == 17'h4B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_19 = _GEN == 17'h82B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_21 = _GEN == 17'h2B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_23 = _GEN == 17'hB3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_25 = _GEN == 17'h133;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_27 = _GEN == 17'h1B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_29 = _GEN == 17'h633;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_31 = _GEN == 17'h6B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_33 = _GEN == 17'h733;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_35 = _GEN == 17'h7B3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
   wire [9:0]  _GEN_0 = {io_inst[14:12], io_inst[6:0]};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
-  wire        _decode_T_19 = _GEN_0 == 10'h13;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
-  wire        _decode_T_21 = _GEN_0 == 10'h23;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
-  wire        _decode_T_23 = _GEN_0 == 10'h203;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
-  wire        _GEN_1 = _decode_T_21 | _decode_T_23;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire        _GEN_2 = _decode_T_19 | _GEN_1;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire [1:0]  _GEN_3 =
+  wire        _decode_T_37 = _GEN_0 == 10'h13;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_39 = _GEN_0 == 10'h393;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_41 = _GEN_0 == 10'h213;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_43 = _GEN_0 == 10'h193;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire [15:0] _GEN_1 = {io_inst[31:26], io_inst[14:12], io_inst[6:0]};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_45 = _GEN_1 == 16'h4293;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_47 = _GEN_1 == 16'h293;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_49 = _GEN_1 == 16'h93;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_51 = _GEN_0 == 10'h3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_53 = _GEN_0 == 10'h83;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_55 = _GEN_0 == 10'h103;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_57 = _GEN_0 == 10'h203;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_59 = _GEN_0 == 10'h283;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_61 = _GEN_0 == 10'h103;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_63 = _GEN_0 == 10'h23;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_65 = _GEN_0 == 10'hA3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_67 = _GEN_0 == 10'h123;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_69 = _GEN_0 == 10'h63;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_71 = _GEN_0 == 10'hE3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_73 = _GEN_0 == 10'h263;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_75 = _GEN_0 == 10'h363;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_77 = _GEN_0 == 10'h2E3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_79 = _GEN_0 == 10'h3E3;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_81 = io_inst[6:0] == 7'h6F;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _decode_T_83 = _GEN_0 == 10'h6F;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38]
+  wire        _GEN_2 = _decode_T_63 | _decode_T_65 | _decode_T_67;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_3 =
+    _decode_T_69 | _decode_T_71 | _decode_T_73 | _decode_T_75 | _decode_T_77
+    | _decode_T_79;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [1:0]  _GEN_4 =
     _decode_T_1
       ? 2'h0
       : _decode_T_3
           ? 2'h2
-          : {1'h0,
-             _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13
-               | _decode_T_15 | _decode_T_17 | _GEN_2};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire [2:0]  _decode_T_57 = {1'h0, _decode_T_23, 1'h0};	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire        _GEN_4 =
-    _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13 | _decode_T_15
-    | _decode_T_17;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire [2:0]  decode_2 =
-    _decode_T_1
-      ? 3'h0
-      : _decode_T_3
-          ? 3'h3
-          : _GEN_4 ? 3'h1 : _decode_T_19 ? 3'h2 : _decode_T_21 ? 3'h4 : _decode_T_57;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+          : _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13
+            | _decode_T_15 | _decode_T_17 | _decode_T_19 | _decode_T_21 | _decode_T_23
+            | _decode_T_25 | _decode_T_27 | _decode_T_29 | _decode_T_31 | _decode_T_33
+            | _decode_T_35 | _decode_T_37 | _decode_T_39 | _decode_T_41 | _decode_T_43
+            | _decode_T_45 | _decode_T_47 | _decode_T_49 | _decode_T_51 | _decode_T_53
+            | _decode_T_55 | _decode_T_57 | _decode_T_59 | _decode_T_61 | _decode_T_63
+            | _decode_T_65 | _decode_T_67 | _GEN_3
+              ? 2'h1
+              : {_decode_T_81 | _decode_T_83, 1'h0};	// @[cpu/src/stage/IDU.scala:44:38, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
   wire        _GEN_5 =
+    _decode_T_51 | _decode_T_53 | _decode_T_55 | _decode_T_57 | _decode_T_59
+    | _decode_T_61;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_6 =
+    _decode_T_37 | _decode_T_39 | _decode_T_41 | _decode_T_43 | _decode_T_45
+    | _decode_T_47 | _decode_T_49 | _GEN_5;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire        _GEN_7 =
     _decode_T_1 | _decode_T_3 | _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11
-    | _decode_T_13 | _decode_T_15 | _decode_T_17 | _decode_T_19;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  wire [2:0]  decode_3 = _GEN_5 ? 3'h0 : _decode_T_21 ? 3'h1 : _decode_T_57;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  assign io_rs1_addr = io_inst[19:15];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:33:27]
-  assign io_rs2_addr = io_inst[24:20];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:34:27]
-  assign io_rd_addr = io_inst[11:7];	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:35:27]
-  assign io_op1_data = _GEN_3 == 2'h1 ? io_rs1_data : _GEN_3 == 2'h2 ? io_pc : 32'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:68:18, :69:18, src/main/scala/chisel3/util/Lookup.scala:34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
-  assign io_op2_data =
-    decode_2 == 3'h3
-      ? {io_inst[31:12], 12'h0}
-      : decode_2 == 3'h2
-          ? {{20{io_inst[31]}}, io_inst[31:20]}
-          : decode_2 == 3'h4
-              ? {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]}
-              : decode_2 == 3'h1 ? io_rs2_data : 32'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:35:27, :37:30, :38:{26,31,41}, :39:30, :40:{26,38}, :41:34, :42:{26,31,41}, :75:18, :76:18, :77:18, :78:18, src/main/scala/chisel3/util/Lookup.scala:34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
-  assign io_mem_data = {24'h0, io_rs2_data[7:0]};	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:87:{23,28,50}]
+    | _decode_T_13 | _decode_T_15 | _decode_T_17 | _decode_T_19 | _decode_T_21
+    | _decode_T_23 | _decode_T_25 | _decode_T_27 | _decode_T_29 | _decode_T_31
+    | _decode_T_33 | _decode_T_35 | _decode_T_37 | _decode_T_39 | _decode_T_41
+    | _decode_T_43 | _decode_T_45 | _decode_T_47 | _decode_T_49;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  wire [2:0]  decode_3 = _GEN_7 ? 3'h0 : _GEN_5 ? 3'h2 : {2'h0, _GEN_2};	// @[src/main/scala/chisel3/util/Lookup.scala:34:39]
+  wire [7:0]  decode_6 =
+    _decode_T_1
+      ? 8'h0
+      : _decode_T_3
+          ? 8'h32
+          : _decode_T_5
+              ? 8'h1
+              : _decode_T_7
+                  ? 8'h2
+                  : _decode_T_9
+                      ? 8'h3
+                      : _decode_T_11
+                          ? 8'h4
+                          : _decode_T_13
+                              ? 8'h5
+                              : _decode_T_15
+                                  ? 8'h6
+                                  : _decode_T_17
+                                      ? 8'h7
+                                      : _decode_T_19
+                                          ? 8'hE
+                                          : _decode_T_21
+                                              ? 8'hF
+                                              : _decode_T_23
+                                                  ? 8'h10
+                                                  : _decode_T_25
+                                                      ? 8'hC
+                                                      : _decode_T_27
+                                                          ? 8'hD
+                                                          : _decode_T_29
+                                                              ? 8'h8
+                                                              : _decode_T_31
+                                                                  ? 8'h9
+                                                                  : _decode_T_33
+                                                                      ? 8'hA
+                                                                      : _decode_T_35
+                                                                          ? 8'hB
+                                                                          : _decode_T_37
+                                                                              ? 8'h11
+                                                                              : _decode_T_39
+                                                                                  ? 8'h12
+                                                                                  : _decode_T_41
+                                                                                      ? 8'h13
+                                                                                      : _decode_T_43
+                                                                                          ? 8'h14
+                                                                                          : _decode_T_45
+                                                                                              ? 8'h17
+                                                                                              : _decode_T_47
+                                                                                                  ? 8'h16
+                                                                                                  : _decode_T_49
+                                                                                                      ? 8'h15
+                                                                                                      : _decode_T_51
+                                                                                                          ? 8'h18
+                                                                                                          : _decode_T_53
+                                                                                                              ? 8'h19
+                                                                                                              : _decode_T_55
+                                                                                                                  ? 8'h1A
+                                                                                                                  : _decode_T_57
+                                                                                                                      ? 8'h1B
+                                                                                                                      : _decode_T_59
+                                                                                                                          ? 8'h1C
+                                                                                                                          : _decode_T_61
+                                                                                                                              ? 8'h1D
+                                                                                                                              : _decode_T_63
+                                                                                                                                  ? 8'h1E
+                                                                                                                                  : _decode_T_65
+                                                                                                                                      ? 8'h1F
+                                                                                                                                      : _decode_T_67
+                                                                                                                                          ? 8'h20
+                                                                                                                                          : _decode_T_69
+                                                                                                                                              ? 8'h21
+                                                                                                                                              : _decode_T_71
+                                                                                                                                                  ? 8'h22
+                                                                                                                                                  : _decode_T_73
+                                                                                                                                                      ? 8'h23
+                                                                                                                                                      : _decode_T_75
+                                                                                                                                                          ? 8'h24
+                                                                                                                                                          : _decode_T_77
+                                                                                                                                                              ? 8'h25
+                                                                                                                                                              : _decode_T_79
+                                                                                                                                                                  ? 8'h26
+                                                                                                                                                                  : _decode_T_81
+                                                                                                                                                                      ? 8'h27
+                                                                                                                                                                      : _decode_T_83
+                                                                                                                                                                          ? 8'h28
+                                                                                                                                                                          : 8'h11;	// @[src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  always_comb begin	// @[cpu/src/stage/IDU.scala:117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+    casez (_decode_T_1
+             ? 3'h0
+             : _decode_T_3
+                 ? 3'h3
+                 : _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11 | _decode_T_13
+                   | _decode_T_15 | _decode_T_17 | _decode_T_19 | _decode_T_21
+                   | _decode_T_23 | _decode_T_25 | _decode_T_27 | _decode_T_29
+                   | _decode_T_31 | _decode_T_33 | _decode_T_35
+                     ? 3'h1
+                     : _GEN_6
+                         ? 3'h2
+                         : _GEN_2
+                             ? 3'h4
+                             : _GEN_3
+                                 ? 3'h1
+                                 : _decode_T_81 ? 3'h5 : {1'h0, _decode_T_83, 1'h0})	// @[cpu/src/stage/IDU.scala:44:38, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b000:
+        casez_tmp = 32'h0;	// @[cpu/src/stage/IDU.scala:117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b001:
+        casez_tmp = io_rs2_data;	// @[cpu/src/stage/IDU.scala:117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b010:
+        casez_tmp = {{20{io_inst[31]}}, io_inst[31:20]};	// @[cpu/src/stage/IDU.scala:41:30, :42:{26,31,41}, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b011:
+        casez_tmp = {io_inst[31:12], 12'h0};	// @[cpu/src/stage/IDU.scala:43:30, :44:{26,38}, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b100:
+        casez_tmp = {{20{io_inst[31]}}, io_inst[31:25], io_inst[11:7]};	// @[cpu/src/stage/IDU.scala:39:27, :45:34, :46:{26,31,41}, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b101:
+        casez_tmp =
+          {{12{io_inst[31]}}, io_inst[19:12], io_inst[20], io_inst[30:21], 1'h0};	// @[cpu/src/stage/IDU.scala:44:38, :47:34, :49:{47,64,77}, :50:26, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      3'b110:
+        casez_tmp = 32'h0;	// @[cpu/src/stage/IDU.scala:117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+      default:
+        casez_tmp = 32'h0;	// @[cpu/src/stage/IDU.scala:117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Mux.scala:141:16]
+    endcase	// @[cpu/src/stage/IDU.scala:44:38, :117:18, :118:18, :119:18, :120:18, :121:18, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
+  end // always_comb
+  assign io_rs1_addr = io_inst[19:15];	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:37:27]
+  assign io_rs2_addr = io_inst[24:20];	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:38:27]
+  assign io_rd_addr = io_inst[11:7];	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:39:27]
+  assign io_op1_data = _GEN_4 == 2'h1 ? io_rs1_data : _GEN_4 == 2'h2 ? io_pc : 32'h0;	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:110:18, :111:18, src/main/scala/chisel3/util/Lookup.scala:34:39, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_op2_data = casez_tmp;	// @[<stdin>:17:10, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_mem_data = {24'h0, io_rs2_data[7:0]};	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:130:{23,28,50}]
   assign io_excode =
     _decode_T_1
-      ? 5'h0
+      ? 6'h0
       : _decode_T_3 | _decode_T_5
-          ? 5'h1
+          ? 6'h1
           : _decode_T_7
-              ? 5'h2
+              ? 6'h2
               : _decode_T_9
-                  ? 5'h3
+                  ? 6'h3
                   : _decode_T_11
-                      ? 5'h4
+                      ? 6'h4
                       : _decode_T_13
-                          ? 5'h5
-                          : _decode_T_15 ? 5'h6 : _decode_T_17 ? 5'h7 : {4'h0, _GEN_2};	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  assign io_mem_op = decode_3;	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:34:39]
+                          ? 6'h5
+                          : _decode_T_15
+                              ? 6'h6
+                              : _decode_T_17
+                                  ? 6'h7
+                                  : _decode_T_19
+                                      ? 6'hA
+                                      : _decode_T_21
+                                          ? 6'h9
+                                          : _decode_T_23
+                                              ? 6'h8
+                                              : _decode_T_25
+                                                  ? 6'hB
+                                                  : _decode_T_27
+                                                      ? 6'hC
+                                                      : _decode_T_29
+                                                          ? 6'hF
+                                                          : _decode_T_31
+                                                              ? 6'h10
+                                                              : _decode_T_33
+                                                                  ? 6'hD
+                                                                  : _decode_T_35
+                                                                      ? 6'hE
+                                                                      : _decode_T_37
+                                                                          ? 6'h1
+                                                                          : _decode_T_39
+                                                                              ? 6'h3
+                                                                              : _decode_T_41
+                                                                                  ? 6'h5
+                                                                                  : _decode_T_43
+                                                                                      ? 6'hC
+                                                                                      : _decode_T_45
+                                                                                          ? 6'hA
+                                                                                          : _decode_T_47
+                                                                                              ? 6'h9
+                                                                                              : _decode_T_49
+                                                                                                  ? 6'h8
+                                                                                                  : _decode_T_51
+                                                                                                    | _decode_T_53
+                                                                                                    | _decode_T_55
+                                                                                                    | _decode_T_57
+                                                                                                    | _decode_T_59
+                                                                                                    | _decode_T_61
+                                                                                                    | _GEN_2
+                                                                                                      ? 6'h1
+                                                                                                      : _decode_T_69
+                                                                                                          ? 6'h14
+                                                                                                          : _decode_T_71
+                                                                                                              ? 6'h15
+                                                                                                              : _decode_T_73
+                                                                                                                  ? 6'h16
+                                                                                                                  : _decode_T_75
+                                                                                                                      ? 6'h17
+                                                                                                                      : _decode_T_77
+                                                                                                                          ? 6'h18
+                                                                                                                          : _decode_T_79
+                                                                                                                              ? 6'h19
+                                                                                                                              : _decode_T_81
+                                                                                                                                  ? 6'h1
+                                                                                                                                  : _decode_T_83
+                                                                                                                                      ? 6'h11
+                                                                                                                                      : 6'h0;	// @[<stdin>:17:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_mem_op = decode_3;	// @[<stdin>:17:10, src/main/scala/chisel3/util/Lookup.scala:34:39]
   assign io_reg_op =
     _decode_T_1
       ? 3'h0
-      : _decode_T_3 | _GEN_4
-          ? 3'h1
-          : _decode_T_19 | _decode_T_21 ? 3'h0 : {2'h0, _decode_T_23};	// @[<stdin>:15:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  assign io_halt =
-    (_decode_T_1
-       ? 8'h0
-       : _decode_T_3
-           ? 8'h32
-           : _decode_T_5
-               ? 8'h1
-               : _decode_T_7
-                   ? 8'h2
-                   : _decode_T_9
-                       ? 8'h3
-                       : _decode_T_11
-                           ? 8'h4
-                           : _decode_T_13
-                               ? 8'h5
-                               : _decode_T_15
-                                   ? 8'h6
-                                   : _decode_T_17
-                                       ? 8'h7
-                                       : _decode_T_19
-                                           ? 8'h11
-                                           : _decode_T_21
-                                               ? 8'h1E
-                                               : _decode_T_23 ? 8'h1B : 8'h11) == 8'h0;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:89:35, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
-  assign io_Store = decode_3[1:0] == 2'h1;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:81:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
-  assign io_Load = decode_3[1:0] == 2'h2;	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:82:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
-  assign io_SL_len = {1'h0, _GEN_5 ? 4'h0 : {3'h0, _GEN_1}};	// @[<stdin>:15:10, cpu/src/stage/IDU.scala:83:15, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+      : {2'h0,
+         _decode_T_3 | _decode_T_5 | _decode_T_7 | _decode_T_9 | _decode_T_11
+           | _decode_T_13 | _decode_T_15 | _decode_T_17 | _decode_T_19 | _decode_T_21
+           | _decode_T_23 | _decode_T_25 | _decode_T_27 | _decode_T_29 | _decode_T_31
+           | _decode_T_33 | _decode_T_35 | _GEN_6};	// @[<stdin>:17:10, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
+  assign io_inst_code = decode_6;	// @[<stdin>:17:10, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_br_target =
+    io_pc + {{20{io_inst[31]}}, io_inst[7], io_inst[30:25], io_inst[11:8], 1'h0};	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:44:38, :47:{34,47,59,76}, :48:26, :133:26]
+  assign io_halt = decode_6 == 8'h0;	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:134:39, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_Store = decode_3[1:0] == 2'h1;	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:124:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_Load = decode_3[1:0] == 2'h2;	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:125:29, src/main/scala/chisel3/util/Lookup.scala:34:39]
+  assign io_SL_len =
+    {1'h0,
+     _GEN_7
+       ? 4'h0
+       : _decode_T_51
+           ? 4'h1
+           : _decode_T_53
+               ? 4'h2
+               : _decode_T_55
+                   ? 4'h4
+                   : _decode_T_57
+                       ? 4'h1
+                       : _decode_T_59
+                           ? 4'h2
+                           : _decode_T_61
+                               ? 4'h4
+                               : _decode_T_63
+                                   ? 4'h1
+                                   : _decode_T_65 ? 4'h2 : {1'h0, _decode_T_67, 2'h0}};	// @[<stdin>:17:10, cpu/src/stage/IDU.scala:44:38, :126:15, src/main/scala/chisel3/util/Lookup.scala:31:38, :34:39]
 endmodule
 
-module EXU(	// @[<stdin>:181:10]
+module EXU(	// @[<stdin>:483:10]
   input  [31:0] io_data1,	// @[cpu/src/stage/EXU.scala:12:16]
                 io_data2,	// @[cpu/src/stage/EXU.scala:12:16]
-  input  [4:0]  io_excode,	// @[cpu/src/stage/EXU.scala:12:16]
+  input  [5:0]  io_excode,	// @[cpu/src/stage/EXU.scala:12:16]
   input  [2:0]  io_mem_op,	// @[cpu/src/stage/EXU.scala:12:16]
   output [31:0] io_alu_res,	// @[cpu/src/stage/EXU.scala:12:16]
-                io_waddr	// @[cpu/src/stage/EXU.scala:12:16]
+  output        io_br_taken,	// @[cpu/src/stage/EXU.scala:12:16]
+  output [31:0] io_waddr	// @[cpu/src/stage/EXU.scala:12:16]
 );
 
-  wire [63:0] _GEN = {32'h0, io_data1} * {32'h0, io_data2};	// @[cpu/src/stage/EXU.scala:29:73, src/main/scala/chisel3/util/Mux.scala:141:16]
+  wire [31:0] _io_alu_res_T_2 = io_data1 + io_data2;	// @[cpu/src/stage/EXU.scala:24:51]
+  wire [63:0] _GEN = {32'h0, io_data1} * {32'h0, io_data2};	// @[cpu/src/stage/EXU.scala:30:73, src/main/scala/chisel3/util/Mux.scala:141:16]
+  wire [31:0] _GEN_0 = {27'h0, io_data2[4:0]};	// @[cpu/src/stage/EXU.scala:31:{58,69}]
+  wire [62:0] _io_alu_res_T_27 = {31'h0, io_data1} << io_data2[4:0];	// @[cpu/src/stage/EXU.scala:31:69, :33:51]
+  wire        _io_br_taken_T_9 = io_data1 < io_data2;	// @[cpu/src/stage/EXU.scala:35:51]
+  wire [32:0] _io_alu_res_T_38 =
+    $signed({io_data1[31], io_data1}) / $signed({io_data2[31], io_data2});	// @[cpu/src/stage/EXU.scala:36:58]
   wire [31:0] _io_alu_res_output =
-    io_excode == 5'h1
-      ? io_data1 + io_data2
-      : io_excode == 5'h2
+    io_excode == 6'h1
+      ? _io_alu_res_T_2
+      : io_excode == 6'h2
           ? io_data1 - io_data2
-          : io_excode == 5'h3
+          : io_excode == 6'h3
               ? io_data1 & io_data2
-              : io_excode == 5'h4
+              : io_excode == 6'h4
                   ? io_data1 | io_data2
-                  : io_excode == 5'h5
+                  : io_excode == 6'h5
                       ? io_data1 ^ io_data2
-                      : io_excode == 5'h6
+                      : io_excode == 6'h6
                           ? io_data1 * io_data2
-                          : io_excode == 5'h7 ? _GEN[63:32] : 32'h0;	// @[cpu/src/stage/EXU.scala:23:{24,50}, :24:{24,50}, :25:{24,50}, :26:{24,50}, :27:{24,50}, :28:{24,50}, :29:{24,73,106}, src/main/scala/chisel3/util/Mux.scala:141:16]
-  assign io_alu_res = _io_alu_res_output;	// @[<stdin>:181:10, src/main/scala/chisel3/util/Mux.scala:141:16]
-  assign io_waddr = io_mem_op == 3'h1 | io_mem_op == 3'h2 ? _io_alu_res_output : 32'h0;	// @[<stdin>:181:10, cpu/src/stage/EXU.scala:35:24, :36:24, src/main/scala/chisel3/util/Mux.scala:141:16]
+                          : io_excode == 6'h7
+                              ? _GEN[63:32]
+                              : io_excode == 6'hA
+                                  ? $signed($signed(io_data1) >>> _GEN_0)
+                                  : io_excode == 6'h9
+                                      ? io_data1 >> _GEN_0
+                                      : io_excode == 6'h8
+                                          ? _io_alu_res_T_27[31:0]
+                                          : io_excode == 6'hB
+                                              ? {31'h0,
+                                                 $signed(io_data1) < $signed(io_data2)}
+                                              : io_excode == 6'hC
+                                                  ? {31'h0, _io_br_taken_T_9}
+                                                  : io_excode == 6'hF
+                                                      ? _io_alu_res_T_38[31:0]
+                                                      : io_excode == 6'h10
+                                                          ? io_data1 / io_data2
+                                                          : io_excode == 6'hD
+                                                              ? $signed(io_data1)
+                                                                % $signed(io_data2)
+                                                              : io_excode == 6'hE
+                                                                  ? io_data1 % io_data2
+                                                                  : io_excode == 6'h11
+                                                                      ? _io_alu_res_T_2
+                                                                        & 32'hFFFFFFFE
+                                                                      : 32'h0;	// @[cpu/src/stage/EXU.scala:24:{24,51}, :25:{24,51}, :26:{24,51}, :27:{24,51}, :28:{24,51}, :29:{24,51}, :30:{24,73,106}, :31:{24,58}, :32:{24,51}, :33:{24,51,69}, :34:{24,58}, :35:{24,51}, :36:{24,58}, :38:{24,51}, :39:{24,58}, :40:{24,51}, :41:{24,64,66}, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_alu_res = _io_alu_res_output;	// @[<stdin>:483:10, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_br_taken =
+    io_excode == 6'h14
+      ? io_data1 == io_data2
+      : io_excode == 6'h15
+          ? io_data1 != io_data2
+          : io_excode == 6'h16
+              ? $signed(io_data1) < $signed(io_data2)
+              : io_excode == 6'h17
+                  ? _io_br_taken_T_9
+                  : io_excode == 6'h18
+                      ? $signed(io_data1) >= $signed(io_data2)
+                      : io_excode == 6'h19 & io_data1 >= io_data2;	// @[<stdin>:483:10, cpu/src/stage/EXU.scala:35:51, :47:{24,51}, :48:{24,51}, :49:{24,58}, :50:24, :51:{24,58}, :52:{24,51}, src/main/scala/chisel3/util/Mux.scala:141:16]
+  assign io_waddr = io_mem_op == 3'h1 | io_mem_op == 3'h2 ? _io_alu_res_output : 32'h0;	// @[<stdin>:483:10, cpu/src/stage/EXU.scala:58:24, :59:24, src/main/scala/chisel3/util/Mux.scala:141:16]
 endmodule
 
-module GPR(	// @[<stdin>:221:10]
-  input         clock,	// @[<stdin>:222:11]
+module GPR(	// @[<stdin>:593:10]
+  input         clock,	// @[<stdin>:594:11]
                 io_wen,	// @[cpu/src/unit/GPR.scala:10:16]
   input  [4:0]  io_raddr1,	// @[cpu/src/unit/GPR.scala:10:16]
                 io_raddr2,	// @[cpu/src/unit/GPR.scala:10:16]
@@ -290,10 +554,10 @@ module GPR(	// @[<stdin>:221:10]
   wire [31:0] _regs_ext_R1_data;	// @[cpu/src/unit/GPR.scala:19:19]
   regs_combMem regs_ext (	// @[cpu/src/unit/GPR.scala:19:19]
     .R0_addr (io_raddr1),
-    .R0_en   (1'h1),	// @[<stdin>:221:10]
+    .R0_en   (1'h1),	// @[<stdin>:593:10]
     .R0_clk  (clock),
     .R1_addr (io_raddr2),
-    .R1_en   (1'h1),	// @[<stdin>:221:10]
+    .R1_en   (1'h1),	// @[<stdin>:593:10]
     .R1_clk  (clock),
     .W0_addr (io_waddr),
     .W0_en   (io_wen & (|io_waddr)),	// @[cpu/src/unit/GPR.scala:22:{18,30}]
@@ -302,13 +566,13 @@ module GPR(	// @[<stdin>:221:10]
     .R0_data (_regs_ext_R0_data),
     .R1_data (_regs_ext_R1_data)
   );
-  assign io_rdata1 = io_raddr1 == 5'h0 ? 32'h0 : _regs_ext_R0_data;	// @[<stdin>:221:10, cpu/src/unit/GPR.scala:19:19, :20:{21,33}, :21:21]
-  assign io_rdata2 = io_raddr2 == 5'h0 ? 32'h0 : _regs_ext_R1_data;	// @[<stdin>:221:10, cpu/src/unit/GPR.scala:19:19, :20:33, :21:{21,33}]
+  assign io_rdata1 = io_raddr1 == 5'h0 ? 32'h0 : _regs_ext_R0_data;	// @[<stdin>:593:10, cpu/src/unit/GPR.scala:19:19, :20:{21,33}, :21:21]
+  assign io_rdata2 = io_raddr2 == 5'h0 ? 32'h0 : _regs_ext_R1_data;	// @[<stdin>:593:10, cpu/src/unit/GPR.scala:19:19, :20:33, :21:{21,33}]
 endmodule
 
-module TOP(	// @[<stdin>:242:10]
-  input         clock,	// @[<stdin>:243:11]
-                reset,	// @[<stdin>:244:11]
+module TOP(	// @[<stdin>:614:10]
+  input         clock,	// @[<stdin>:615:11]
+                reset,	// @[<stdin>:616:11]
   input  [31:0] io_inst,	// @[cpu/src/TOP.scala:15:16]
                 io_data_sram_rdata,	// @[cpu/src/TOP.scala:15:16]
   output [31:0] io_pc,	// @[cpu/src/TOP.scala:15:16]
@@ -322,72 +586,87 @@ module TOP(	// @[<stdin>:242:10]
                 io_Store,	// @[cpu/src/TOP.scala:15:16]
                 io_Load,	// @[cpu/src/TOP.scala:15:16]
   output [4:0]  io_SL_len,	// @[cpu/src/TOP.scala:15:16]
-  output [31:0] io_data_sram_addr,	// @[cpu/src/TOP.scala:15:16]
+  output [7:0]  io_inst_code,	// @[cpu/src/TOP.scala:15:16]
+  output        io_br_taken,	// @[cpu/src/TOP.scala:15:16]
+  output [31:0] io_br_target,	// @[cpu/src/TOP.scala:15:16]
+                io_data_sram_addr,	// @[cpu/src/TOP.scala:15:16]
                 io_data_sram_wdata	// @[cpu/src/TOP.scala:15:16]
 );
 
-  wire [31:0] _GPR_io_rdata1;	// @[cpu/src/TOP.scala:39:21]
-  wire [31:0] _GPR_io_rdata2;	// @[cpu/src/TOP.scala:39:21]
-  wire [31:0] _EXU_io_alu_res;	// @[cpu/src/TOP.scala:38:21]
-  wire [4:0]  _IDU_io_rs1_addr;	// @[cpu/src/TOP.scala:37:21]
-  wire [4:0]  _IDU_io_rs2_addr;	// @[cpu/src/TOP.scala:37:21]
-  wire [4:0]  _IDU_io_rd_addr;	// @[cpu/src/TOP.scala:37:21]
-  wire [31:0] _IDU_io_op1_data;	// @[cpu/src/TOP.scala:37:21]
-  wire [31:0] _IDU_io_op2_data;	// @[cpu/src/TOP.scala:37:21]
-  wire [4:0]  _IDU_io_excode;	// @[cpu/src/TOP.scala:37:21]
-  wire [2:0]  _IDU_io_mem_op;	// @[cpu/src/TOP.scala:37:21]
-  wire [2:0]  _IDU_io_reg_op;	// @[cpu/src/TOP.scala:37:21]
-  wire        _IDU_io_Load;	// @[cpu/src/TOP.scala:37:21]
-  wire [31:0] _IFU_io_pc;	// @[cpu/src/TOP.scala:36:21]
-  IFU IFU (	// @[cpu/src/TOP.scala:36:21]
-    .clock (clock),
-    .reset (reset),
-    .io_pc (_IFU_io_pc)
+  wire [31:0] _GPR_io_rdata1;	// @[cpu/src/TOP.scala:43:21]
+  wire [31:0] _GPR_io_rdata2;	// @[cpu/src/TOP.scala:43:21]
+  wire [31:0] _EXU_io_alu_res;	// @[cpu/src/TOP.scala:42:21]
+  wire        _EXU_io_br_taken;	// @[cpu/src/TOP.scala:42:21]
+  wire [4:0]  _IDU_io_rs1_addr;	// @[cpu/src/TOP.scala:41:21]
+  wire [4:0]  _IDU_io_rs2_addr;	// @[cpu/src/TOP.scala:41:21]
+  wire [4:0]  _IDU_io_rd_addr;	// @[cpu/src/TOP.scala:41:21]
+  wire [31:0] _IDU_io_op1_data;	// @[cpu/src/TOP.scala:41:21]
+  wire [31:0] _IDU_io_op2_data;	// @[cpu/src/TOP.scala:41:21]
+  wire [5:0]  _IDU_io_excode;	// @[cpu/src/TOP.scala:41:21]
+  wire [2:0]  _IDU_io_mem_op;	// @[cpu/src/TOP.scala:41:21]
+  wire [2:0]  _IDU_io_reg_op;	// @[cpu/src/TOP.scala:41:21]
+  wire [7:0]  _IDU_io_inst_code;	// @[cpu/src/TOP.scala:41:21]
+  wire [31:0] _IDU_io_br_target;	// @[cpu/src/TOP.scala:41:21]
+  wire        _IDU_io_Load;	// @[cpu/src/TOP.scala:41:21]
+  wire [31:0] _IFU_io_pc;	// @[cpu/src/TOP.scala:40:21]
+  wire        _io_br_target_T = _IDU_io_inst_code == 8'h28;	// @[cpu/src/TOP.scala:41:21, :65:43]
+  IFU IFU (	// @[cpu/src/TOP.scala:40:21]
+    .clock        (clock),
+    .reset        (reset),
+    .io_br_taken  (_EXU_io_br_taken),	// @[cpu/src/TOP.scala:42:21]
+    .io_br_target (_io_br_target_T ? _EXU_io_alu_res : _IDU_io_br_target),	// @[cpu/src/TOP.scala:41:21, :42:21, :65:{28,43}]
+    .io_pc        (_IFU_io_pc)
   );
-  IDU IDU (	// @[cpu/src/TOP.scala:37:21]
-    .io_inst     (io_inst),
-    .io_pc       (_IFU_io_pc),	// @[cpu/src/TOP.scala:36:21]
-    .io_rs1_data (_GPR_io_rdata1),	// @[cpu/src/TOP.scala:39:21]
-    .io_rs2_data (_GPR_io_rdata2),	// @[cpu/src/TOP.scala:39:21]
-    .io_rs1_addr (_IDU_io_rs1_addr),
-    .io_rs2_addr (_IDU_io_rs2_addr),
-    .io_rd_addr  (_IDU_io_rd_addr),
-    .io_op1_data (_IDU_io_op1_data),
-    .io_op2_data (_IDU_io_op2_data),
-    .io_mem_data (io_data_sram_wdata),
-    .io_excode   (_IDU_io_excode),
-    .io_mem_op   (_IDU_io_mem_op),
-    .io_reg_op   (_IDU_io_reg_op),
-    .io_halt     (io_halt),
-    .io_Store    (io_Store),
-    .io_Load     (_IDU_io_Load),
-    .io_SL_len   (io_SL_len)
+  IDU IDU (	// @[cpu/src/TOP.scala:41:21]
+    .io_inst      (io_inst),
+    .io_pc        (_IFU_io_pc),	// @[cpu/src/TOP.scala:40:21]
+    .io_rs1_data  (_GPR_io_rdata1),	// @[cpu/src/TOP.scala:43:21]
+    .io_rs2_data  (_GPR_io_rdata2),	// @[cpu/src/TOP.scala:43:21]
+    .io_rs1_addr  (_IDU_io_rs1_addr),
+    .io_rs2_addr  (_IDU_io_rs2_addr),
+    .io_rd_addr   (_IDU_io_rd_addr),
+    .io_op1_data  (_IDU_io_op1_data),
+    .io_op2_data  (_IDU_io_op2_data),
+    .io_mem_data  (io_data_sram_wdata),
+    .io_excode    (_IDU_io_excode),
+    .io_mem_op    (_IDU_io_mem_op),
+    .io_reg_op    (_IDU_io_reg_op),
+    .io_inst_code (_IDU_io_inst_code),
+    .io_br_target (_IDU_io_br_target),
+    .io_halt      (io_halt),
+    .io_Store     (io_Store),
+    .io_Load      (_IDU_io_Load),
+    .io_SL_len    (io_SL_len)
   );
-  EXU EXU (	// @[cpu/src/TOP.scala:38:21]
-    .io_data1   (_IDU_io_op1_data),	// @[cpu/src/TOP.scala:37:21]
-    .io_data2   (_IDU_io_op2_data),	// @[cpu/src/TOP.scala:37:21]
-    .io_excode  (_IDU_io_excode),	// @[cpu/src/TOP.scala:37:21]
-    .io_mem_op  (_IDU_io_mem_op),	// @[cpu/src/TOP.scala:37:21]
-    .io_alu_res (_EXU_io_alu_res),
-    .io_waddr   (io_data_sram_addr)
+  EXU EXU (	// @[cpu/src/TOP.scala:42:21]
+    .io_data1    (_IDU_io_op1_data),	// @[cpu/src/TOP.scala:41:21]
+    .io_data2    (_IDU_io_op2_data),	// @[cpu/src/TOP.scala:41:21]
+    .io_excode   (_IDU_io_excode),	// @[cpu/src/TOP.scala:41:21]
+    .io_mem_op   (_IDU_io_mem_op),	// @[cpu/src/TOP.scala:41:21]
+    .io_alu_res  (_EXU_io_alu_res),
+    .io_br_taken (_EXU_io_br_taken),
+    .io_waddr    (io_data_sram_addr)
   );
-  GPR GPR (	// @[cpu/src/TOP.scala:39:21]
+  GPR GPR (	// @[cpu/src/TOP.scala:43:21]
     .clock     (clock),
-    .io_wen    (_IDU_io_reg_op == 3'h1),	// @[cpu/src/TOP.scala:37:21, :45:28]
-    .io_raddr1 (_IDU_io_rs1_addr),	// @[cpu/src/TOP.scala:37:21]
-    .io_raddr2 (_IDU_io_rs2_addr),	// @[cpu/src/TOP.scala:37:21]
-    .io_waddr  (_IDU_io_rd_addr),	// @[cpu/src/TOP.scala:37:21]
-    .io_wdata  (_IDU_io_Load ? io_data_sram_rdata : _EXU_io_alu_res),	// @[cpu/src/TOP.scala:37:21, :38:21, src/main/scala/chisel3/util/Mux.scala:141:16]
+    .io_wen    (_IDU_io_reg_op == 3'h1),	// @[cpu/src/TOP.scala:41:21, :49:28]
+    .io_raddr1 (_IDU_io_rs1_addr),	// @[cpu/src/TOP.scala:41:21]
+    .io_raddr2 (_IDU_io_rs2_addr),	// @[cpu/src/TOP.scala:41:21]
+    .io_waddr  (_IDU_io_rd_addr),	// @[cpu/src/TOP.scala:41:21]
+    .io_wdata  (_IDU_io_Load ? io_data_sram_rdata : _EXU_io_alu_res),	// @[cpu/src/TOP.scala:41:21, :42:21, src/main/scala/chisel3/util/Mux.scala:141:16]
     .io_rdata1 (_GPR_io_rdata1),
     .io_rdata2 (_GPR_io_rdata2)
   );
-  assign io_pc = _IFU_io_pc;	// @[<stdin>:242:10, cpu/src/TOP.scala:36:21]
-  assign io_rs1 = _IDU_io_rs1_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
-  assign io_rs2 = _IDU_io_rs2_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
-  assign io_data1 = _IDU_io_op1_data;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
-  assign io_data2 = _IDU_io_op2_data;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
-  assign io_rd = _IDU_io_rd_addr;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
-  assign io_res = _EXU_io_alu_res;	// @[<stdin>:242:10, cpu/src/TOP.scala:38:21]
-  assign io_Load = _IDU_io_Load;	// @[<stdin>:242:10, cpu/src/TOP.scala:37:21]
+  assign io_pc = _IFU_io_pc;	// @[<stdin>:614:10, cpu/src/TOP.scala:40:21]
+  assign io_rs1 = _IDU_io_rs1_addr;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_rs2 = _IDU_io_rs2_addr;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_data1 = _IDU_io_op1_data;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_data2 = _IDU_io_op2_data;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_rd = _IDU_io_rd_addr;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_res = _EXU_io_alu_res;	// @[<stdin>:614:10, cpu/src/TOP.scala:42:21]
+  assign io_Load = _IDU_io_Load;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_inst_code = _IDU_io_inst_code;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21]
+  assign io_br_taken = _EXU_io_br_taken;	// @[<stdin>:614:10, cpu/src/TOP.scala:42:21]
+  assign io_br_target = _io_br_target_T ? _EXU_io_alu_res : _IDU_io_br_target;	// @[<stdin>:614:10, cpu/src/TOP.scala:41:21, :42:21, :65:43, :94:24]
 endmodule
 

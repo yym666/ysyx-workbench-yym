@@ -11,6 +11,9 @@ endif
 include $(NEMU_HOME)/include/config/auto.conf
 include $(NEMU_HOME)/include/config/auto.conf.cmd
 
+# include $(AM_HOME)/Makefile
+# LINKAGE += $(ARCHIVES)
+
 remove_quote = $(patsubst "%",%,$(1))
 
 BUILD_DIR = ./build
@@ -32,10 +35,11 @@ CFLAGS_TRACE += -DITRACE_COND=$(if $(CONFIG_ITRACE_COND),$(call remove_quote,$(C
 CFLAGS_TRACE += -DIRINGBUF_COND=$(if $(CONFIG_IRINGBUF_COND),$(call remove_quote,$(CONFIG_IRINGBUF_COND)),true)
 CFLAGS_TRACE += -DMTRACE_COND=$(if $(CONFIG_MTRACE_COND),$(call remove_quote,$(CONFIG_MTRACE_COND)),true)
 CFLAGS_TRACE += -DFTRACE_COND=$(if $(CONFIG_FTRACE_COND),$(call remove_quote,$(CONFIG_FTRACE_COND)),true)
-CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(NPC_GUEST_ISA) $(INCFLAGS)
+CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(NPC_GUEST_ISA) $(INCFLAGS) \
+		   $(shell llvm-config --cxxflags) -fPIE
 LDFLAGS += $(CFLAGS_BUILD)               \
-           -lreadline -ldl -pie           \
-           $(shell llvm-config-11 --libs) \
+           -lreadline -ldl -pie          \
+           $(shell llvm-config --libs) \
            -lSDL2
 
 # scala_src
@@ -64,7 +68,8 @@ DIRC += $(NPC_HOME)/sim             \
         $(NPC_HOME)/sim/utils		\
 		$(NPC_HOME)/sim/engine      \
 		$(NPC_HOME)/sim/engine/interpreter
-SRCC  = $(shell find $(DIRC) -name "*.c")
+SRCC  = $(shell find $(DIRC) -name "*.c") \
+		$(NPC_HOME)/sim/utils/disasm.cc
 
 $(SRCV_GEN): $(SRCS)
 	$(call git_commit, "generate verilog")
@@ -94,9 +99,10 @@ show:
 	@echo $(NPC_BIN) $(SRCV_GEN)
 
 run: $(NPC_BIN)
-	$(NPC_BIN)
+# @echo $(NPC_EXEC)
+# $(NPC_BIN)
 	$(call git_commit, "run NPC")
-#	$(NPC_EXEC)
+	$(NPC_EXEC)
 
 test:
 	mill -i __.test

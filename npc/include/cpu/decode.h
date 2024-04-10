@@ -18,6 +18,15 @@
 
 #include <isa.h>
 
+#define isLB 24
+#define isLH 25
+#define isLW 26
+#define isLBU 27
+#define isLHU 28
+#define isLWU 29
+#define isJAL 39
+#define isJALR 40
+
 typedef struct Decode {
   vaddr_t pc;
   vaddr_t snpc; // static next pc

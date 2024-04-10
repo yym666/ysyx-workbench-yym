@@ -27,6 +27,10 @@ class TOP extends Module {
         val Store   = Output(Bool())
         val Load    = Output(Bool())
         val SL_len  = Output(UInt(5.W))
+        val inst_code   = Output(UInt(INS_LEN.W))
+
+        val br_taken    = Output(Bool())
+        val br_target   = Output(UInt(ADDR_WIDTH.W))
         
         //data sram interface
         val data_sram_addr  = Output(UInt(ADDR_WIDTH.W))
@@ -57,12 +61,22 @@ class TOP extends Module {
     EXU.io.excode <> IDU.io.excode
     EXU.io.mem_op <> IDU.io.mem_op
     IFU.io.pc     <> IDU.io.pc
+    IFU.io.br_taken  <> EXU.io.br_taken
+    IFU.io.br_target := MuxCase(
+        IDU.io.br_target,
+        Seq(
+            (io.inst_code === isJALR) -> (EXU.io.alu_res),
+            (io.inst_code === isJAL ) -> (EXU.io.alu_res)
+        )
+    )
 
     GPR.io.waddr <> IDU.io.rd_addr
     GPR.io.wdata := MuxCase(
         EXU.io.alu_res,
         Seq(
-            (io.Load === true.B) -> (io.data_sram_rdata)
+            (io.Load === true.B) -> (io.data_sram_rdata),
+            (io.inst_code === isJALR) -> (io.pc + 4.U),
+            (io.inst_code === isJAL) -> (io.pc + 4.U)
         )
     )
 
@@ -76,10 +90,19 @@ class TOP extends Module {
     io.data1 <> IDU.io.op1_data
     io.data2 <> IDU.io.op2_data
     io.data_sram_wdata <> IDU.io.mem_data
-    io.data_sram_addr <> EXU.io.waddr
+    io.data_sram_addr  <> EXU.io.waddr
          
 
     io.Store  <> IDU.io.Store
     io.Load   <> IDU.io.Load
     io.SL_len <> IDU.io.SL_len
+    io.inst_code <> IDU.io.inst_code
+    io.br_taken  <> EXU.io.br_taken
+    io.br_target := MuxCase(
+        IDU.io.br_target,
+        Seq(
+            (io.inst_code === isJALR) -> (EXU.io.alu_res),
+            (io.inst_code === isJAL ) -> (EXU.io.alu_res)
+        )
+    )
 }
