@@ -21,6 +21,7 @@
 #include <verilated_vcd_c.h> 
 #include "VTOP___024root.h" 
 #include "VTOP.h"
+#include "disasm.h"
 
 VerilatedContext *contextp = NULL;
 VerilatedVcdC *tfp = NULL;
@@ -44,7 +45,7 @@ static bool halt = false;
 void device_update();
 void watchpoint();
 void iringbuf_display();
-
+// void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
 
 static void single_cycle() {
     top.clock = 0;
@@ -52,8 +53,10 @@ static void single_cycle() {
     top.clock = 1;
     top.eval();
 }
+void difftest_step(vaddr_t pc, vaddr_t npc);
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
+
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
 #endif
@@ -143,6 +146,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   s->dnpc = top.io_br_target;
   if (top.io_inst_code == isJAL) ftrace_jal(s, top.io_rd);
   if (top.io_inst_code == isJALR) ftrace_jalr(s, top.io_rd);
+  trace_and_difftest(s, top.io_pc);
   top.eval();
 
 #ifdef PRINT_LOG
@@ -156,30 +160,30 @@ static void exec_once(Decode *s, vaddr_t pc) {
   single_cycle();
   RegUpdate();
 
-// #ifdef CONFIG_ITRACE
-//   char *p = s->logbuf;
-//   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
-//   int ilen = s->snpc - s->pc;
-//   int i;
-//   uint8_t *inst = (uint8_t *)&s->isa.inst.val;
-//   for (i = ilen - 1; i >= 0; i --) {
-//     p += snprintf(p, 4, " %02x", inst[i]);
-//   }
-//   int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
-//   int space_len = ilen_max - ilen;
-//   if (space_len < 0) space_len = 0;
-//   space_len = space_len * 3 + 1;
-//   memset(p, ' ', space_len);
-//   p += space_len;
+#ifdef CONFIG_ITRACE
+  char *p = s->logbuf;
+  p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
+  int ilen = s->snpc - s->pc;
+  int i;
+  uint8_t *inst = (uint8_t *)&s->isa.inst.val;
+  for (i = ilen - 1; i >= 0; i --) {
+    p += snprintf(p, 4, " %02x", inst[i]);
+  }
+  int ilen_max = MUXDEF(CONFIG_ISA_x86, 8, 4);
+  int space_len = ilen_max - ilen;
+  if (space_len < 0) space_len = 0;
+  space_len = space_len * 3 + 1;
+  memset(p, ' ', space_len);
+  p += space_len;
 
-// #ifndef CONFIG_ISA_loongarch32r
-//   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-//   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-//       MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
-// #else
-//   p[0] = '\0'; // the upstream llvm does not support loongarch32r
-// #endif
-// #endif
+#ifndef CONFIG_ISA_loongarch32r
+  extern void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+  disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
+      MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
+#else
+  p[0] = '\0'; // the upstream llvm does not support loongarch32r
+#endif
+#endif
 }
 
 static void execute(uint64_t n) {
@@ -188,7 +192,6 @@ static void execute(uint64_t n) {
     exec_once(&s, top.io_pc);
     if (halt) return;
     g_nr_guest_inst ++;
-    //trace_and_difftest(&s, cpu.pc);
     //cause strange output
     if (npc_state.state != NPC_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
@@ -224,7 +227,9 @@ void cpu_exec(uint64_t n) {
   execute(n);
 
   //just for itrace test
-  iringbuf_display();
+  #ifdef CONFIG_IRINGBUF
+   iringbuf_display(); 
+  #endif
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;

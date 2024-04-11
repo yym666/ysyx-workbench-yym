@@ -24,7 +24,6 @@ NPC_GUEST_ISA ?= $(call remove_quote,$(CONFIG_ISA))
 NPC_ENGINE    ?= $(call remove_quote,$(CONFIG_ENGINE))
 NPC_NAME       = $(NPC_GUEST_ISA)-npc-$(NPC_ENGINE)
 
-
 # Extract compiler and options from menuconfig
 CC = $(call remove_quote,$(CONFIG_CC))
 CFLAGS_BUILD += $(call remove_quote,$(CONFIG_CC_OPT))
@@ -41,6 +40,7 @@ LDFLAGS += $(CFLAGS_BUILD)               \
            -lreadline -ldl -pie          \
            $(shell llvm-config --libs) \
            -lSDL2
+ # -fsanitize=address			\
 
 # scala_src
 DIRS = $(abspath $(NPC_HOME)/cpu)
@@ -69,7 +69,7 @@ DIRC += $(NPC_HOME)/sim             \
 		$(NPC_HOME)/sim/engine      \
 		$(NPC_HOME)/sim/engine/interpreter
 SRCC  = $(shell find $(DIRC) -name "*.c") \
-		$(NPC_HOME)/sim/utils/disasm.cc
+		$(NPC_HOME)/sim/utils/disasm.cpp
 
 $(SRCV_GEN): $(SRCS)
 	$(call git_commit, "generate verilog")
@@ -91,16 +91,15 @@ $(NPC_BIN): $(SRCV_GEN) $(SRCC)
 	--Mdir $(DIR_OBJ) --exe -o $(abspath $(NPC_BIN))
 
 
-override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
+ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
+ARGS += --diff=$(NEMU_HOME)/build/riscv32-nemu-interpreter-so 
 IMG ?=
 NPC_EXEC := $(NPC_BIN) $(ARGS) $(IMG)
 
 show:
 	@echo $(NPC_BIN) $(SRCV_GEN)
 
-run: $(NPC_BIN)
-# @echo $(NPC_EXEC)
-# $(NPC_BIN)
+run: $(NPC_BIN) $(DIFF_REF_SO)
 	$(call git_commit, "run NPC")
 	$(NPC_EXEC)
 

@@ -23,8 +23,18 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+bool checkregs(CPU_state *ref_r, vaddr_t pc) {
+  //int cnt = ARRLEN(cpu.gpr);
+  for (int i = 0; i < 32; ++i){
+    if (ref_r->gpr[i] != gpr(i))
+      return false;
+  }
+  if (ref_r->pc != cpu.pc)
+    return false;
+  return true;
+}
+
 void isa_reg_display() {
-//PA1.1
   for (int i = 0; i < 32; ++i){
     printf("%6s     0x%08x\n", regs[i], cpu.gpr[i]);
   }
@@ -32,7 +42,6 @@ void isa_reg_display() {
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
-//PA1.1
   s = s + 1;
   for (int i = 0; i < 32; ++i){
     if (strcmp(regs[i], s) == 0){

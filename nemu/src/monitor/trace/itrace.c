@@ -1,5 +1,6 @@
 #include <memory/paddr.h>
 #include <common.h>
+#include "disasm.h"
 
 typedef struct {
     word_t pc;

@@ -1,5 +1,10 @@
 #include <memory/paddr.h>
 #include <common.h>
+#include <cpu/cpu.h>
+#include <cpu/decode.h>
+#include <locale.h>
+#include <cpu/ifetch.h>
+#include "disasm.h"
 
 typedef struct {
     word_t pc;
@@ -29,7 +34,7 @@ void iringbuf_display(){
         p = logbuf;
         p += snprintf(logbuf, sizeof(logbuf), "%s " FMT_WORD ": %08x ", 
             (i+1)%MAX_IRINGBUF_NODE == cur_node_pointer ? "--> " : "    ", iringbuf[i].pc, iringbuf[i].inst);
-        disassemble(p, logbuf+sizeof(logbuf)-p, iringbuf[i].pc, (uint8_t *)&iringbuf[i].inst, 4);
+        disassemble(p, logbuf+sizeof(logbuf)-p, (uint64_t)iringbuf[i].pc, (uint8_t *)(&iringbuf[i].inst), 4);
         puts(logbuf);
     }
 }
