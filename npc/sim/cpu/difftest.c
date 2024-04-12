@@ -7,8 +7,11 @@
 #ifdef DIFFTEST_ON
 
 bool checkregs(CPU_state *ref_r, vaddr_t pc);
+void diff_print_regs(CPU_state *ref_r, vaddr_t pc);
+
 
 #define __EXPORT __attribute__((visibility("default")))
+
 enum
 {
     DIFFTEST_TO_DUT,
@@ -51,27 +54,22 @@ void init_difftest(char *ref_so_file, long img_size, int port)
     ref_difftest_regcpy = (void (*)(void *dut, bool direction))dlsym(handle, "difftest_regcpy");
     assert(ref_difftest_regcpy);
 
-    printf("hd : %d\n", handle);
     ref_difftest_exec = (void (*)(uint64_t n))dlsym(handle, "difftest_exec");
-    
-    printf("diff init diffexec: %s\n", ref_difftest_exec);
     assert(ref_difftest_exec);
 
     ref_difftest_raise_intr = (void (*)(uint64_t NO))dlsym(handle, "difftest_raise_intr");
     assert(ref_difftest_raise_intr);
 
-    void (*ref_difftest_init)() = (void (*)())dlsym(handle, "difftest_init");
+    void (*ref_difftest_init)(int) = (void (*)(int))dlsym(handle, "difftest_init");
     assert(ref_difftest_init);
 
-    ref_difftest_init();
-
-    ref_difftest_memcpy(PMEM_LEFT, guest_to_host(PMEM_LEFT), img_size, DIFFTEST_TO_REF);
+  ref_difftest_init(port);
+  ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+  ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 
 void difftest_step(vaddr_t pc, vaddr_t npc) {
   CPU_state ref_r;
-
-  printf("ds: %08x %08x %d %d\n", pc, npc, skip_dut_nr_inst, is_skip_ref);
 
   if (skip_dut_nr_inst > 0) {
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
@@ -92,12 +90,13 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     is_skip_ref = false;
     return;
   }
-  printf("%s\n", ref_difftest_exec);
   ref_difftest_exec(1);
-  printf("ASDF\n");
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 
-  checkregs(&ref_r, pc);
+  if(!checkregs(&ref_r, pc)){
+    diff_print_regs(&ref_r, pc);
+    exit(0);
+  }
 }
 #else
 void init_difftest(char *ref_so_file, long img_size, int port) {}

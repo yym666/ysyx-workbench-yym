@@ -47,14 +47,18 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
   *rd     = BITS(i, 11, 7);
+  int d1, d2, d3;
   switch (type) {
-    case TYPE_I: src1R();          immI(); break;
-    case TYPE_U:                   immU(); break;
-    case TYPE_S: src1R(); src2R(); immS(); break;
-    case TYPE_J:                   immJ(); break; 
-    case TYPE_B: src1R(); src2R(); immB(); break;
-    case TYPE_R: src1R(); src2R();         break;
+    case TYPE_I: src1R();          immI(); d1 = *src1, d2 = *imm; break;
+    case TYPE_U:                   immU(); d1 = s->pc, d2 = *imm; break;
+    case TYPE_S: src1R(); src2R(); immS(); d1 = *src1, d2 = *src2, d3 = *imm; break;
+    case TYPE_J:                   immJ(); d1 = s->pc, d2 = *imm;  break; 
+    case TYPE_B: src1R(); src2R(); immB(); d1 = *src1, d2 = *src2, d3 = *imm; break;
+    case TYPE_R: src1R(); src2R();         d1 = *src1, d2 = *src2; break;
   }
+  //difftest
+  printf("rs1 = %d\nrs2 = %d\nrd = %d\n", rs1, rs2, *rd);
+  printf("d1 = %08x\nd2 = %08x\nd3 = %08x\n", d1, d2, d3);
 }
 
 void ftrace_jal(Decode *s, word_t rd){

@@ -23,15 +23,24 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-bool checkregs(CPU_state *ref_r, vaddr_t pc) {
-  //int cnt = ARRLEN(cpu.gpr);
+int checkregs(CPU_state *ref_r, vaddr_t pc) {
   for (int i = 0; i < 32; ++i){
-    if (ref_r->gpr[i] != gpr(i))
+    if (ref_r->gpr[i] != gpr(i)){
+      printf("i :: %d\n", i);
       return false;
+    }
   }
   if (ref_r->pc != cpu.pc)
     return false;
   return true;
+}
+
+void diff_print_regs(CPU_state *ref_r, vaddr_t pc) {
+  printf("reg_name  &  npc_reg  &  nemu_reg\n");
+  for (int i = 0; i < 32; ++i){
+    printf("%6s     0x%08x 0x%08x\n", regs[i], cpu.gpr[i], ref_r->gpr[i]);
+  }
+  printf("%6s     0x%08x 0x%08x\n", "pc", cpu.pc, pc);
 }
 
 void isa_reg_display() {

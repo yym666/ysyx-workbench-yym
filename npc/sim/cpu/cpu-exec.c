@@ -56,7 +56,6 @@ static void single_cycle() {
 void difftest_step(vaddr_t pc, vaddr_t npc);
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
-
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
 #endif
@@ -146,7 +145,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   s->dnpc = top.io_br_target;
   if (top.io_inst_code == isJAL) ftrace_jal(s, top.io_rd);
   if (top.io_inst_code == isJALR) ftrace_jalr(s, top.io_rd);
-  trace_and_difftest(s, top.io_pc);
   top.eval();
 
 #ifdef PRINT_LOG
@@ -159,6 +157,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 
   single_cycle();
   RegUpdate();
+  trace_and_difftest(s, top.io_pc);
 
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;

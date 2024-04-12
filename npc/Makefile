@@ -38,6 +38,7 @@ CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(NPC_GUEST_ISA) $(IN
 		   $(shell llvm-config --cxxflags) -fPIE
 LDFLAGS += $(CFLAGS_BUILD)               \
            -lreadline -ldl -pie          \
+           -rdynamic                     \
            $(shell llvm-config --libs) \
            -lSDL2
  # -fsanitize=address			\
@@ -91,8 +92,8 @@ $(NPC_BIN): $(SRCV_GEN) $(SRCC)
 	--Mdir $(DIR_OBJ) --exe -o $(abspath $(NPC_BIN))
 
 
-ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
-ARGS += --diff=$(NEMU_HOME)/build/riscv32-nemu-interpreter-so 
+override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
+override ARGS += --diff=$(NEMU_HOME)/build/riscv32-nemu-interpreter-so 
 IMG ?=
 NPC_EXEC := $(NPC_BIN) $(ARGS) $(IMG)
 

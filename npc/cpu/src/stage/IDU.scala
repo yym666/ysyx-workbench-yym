@@ -54,6 +54,7 @@ class IDU extends Module {
         List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, isADDI),
         Array(
             EBREAK  -> List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, isEBREAK),
+            LUI     -> List(ALU_ADD, OP1_ERR, OP2_IMU, MEM_ERR, LSL_0, REG_WT , isLUI),
             AUIPC   -> List(ALU_ADD, OP1_PC , OP2_IMU, MEM_ERR, LSL_0, REG_WT , isAUIPC),
 
             ADD     -> List(ALU_ADD, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , isADD),
@@ -127,7 +128,14 @@ class IDU extends Module {
     
     io.mem_op   := mem_wen
     io.reg_op   := reg_wen
-    io.mem_data := Cat(Fill(24, 0.U), io.rs2_data(7, 0))
+    io.mem_data := MuxCase(
+        0.U(DATA_WIDTH.W),
+        Seq(
+            (inst_code_tmp === isSB) -> (Cat(Fill(24, 0.U), io.rs2_data(7, 0))),
+            (inst_code_tmp === isSH) -> (Cat(Fill(16, 0.U), io.rs2_data(15, 0))),
+            (inst_code_tmp === isSW) -> (io.rs2_data)
+        )
+    )
     io.excode   := excode_tmp
     io.inst_code:= inst_code_tmp
     io.br_target:= io.pc + imm_b_sext

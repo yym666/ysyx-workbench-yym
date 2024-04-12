@@ -17,7 +17,6 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
-#include "disasm.h"
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -123,7 +122,7 @@ void cpu_exec(uint64_t n) {
   execute(n);
   
   //just for test
-  iringbuf_display();
+  //iringbuf_display();
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;
