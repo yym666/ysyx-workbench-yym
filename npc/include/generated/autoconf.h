@@ -6,7 +6,7 @@
  */
 #define CONFIG_DIFFTEST_REF_NAME "none"
 #define CONFIG_ENGINE "interpreter"
-#define CONFIG_WATCHPOINT 1
+// #define CONFIG_WATCHPOINT 1
 #define CONFIG_PC_RESET_OFFSET 0x0
 #define CONFIG_TARGET_NATIVE_ELF 1
 // #define CONFIG_IRINGBUF 1
@@ -26,15 +26,15 @@
 // #define CONFIG_MTRACE 1
 // #define CONFIG_ITRACE_COND "true"
 // #define CONFIG_FTRACE_COND "true"
-#define CONFIG_MTRACE_COND "true"
+// #define CONFIG_MTRACE_COND "true"
 #define CONFIG_CC "gcc"
 #define CONFIG_DIFFTEST_REF_PATH "none"
 #define CONFIG_TRACE_START 0
 #define CONFIG_CC_GCC 1
-#define CONFIG_TRACE 1
+// #define CONFIG_TRACE 1
 #define CONFIG_ISA "riscv32"
 #define CONFIG_PMEM_GARRAY 1
 
-#define PRINT_LOG 1
-#define CONFIG_DIFFTEST 1
-#define DIFFTEST_ON 1
+// #define PRINT_LOG 1
+// #define CONFIG_DIFFTEST 1
+// #define DIFFTEST_ON 1

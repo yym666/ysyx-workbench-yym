@@ -47,36 +47,45 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
   *rd     = BITS(i, 11, 7);
-  int d1, d2, d3;
   switch (type) {
-    case TYPE_I: src1R();          immI(); d1 = *src1, d2 = *imm; break;
-    case TYPE_U:                   immU(); d1 = s->pc, d2 = *imm; break;
-    case TYPE_S: src1R(); src2R(); immS(); d1 = *src1, d2 = *src2, d3 = *imm; break;
-    case TYPE_J:                   immJ(); d1 = s->pc, d2 = *imm;  break; 
-    case TYPE_B: src1R(); src2R(); immB(); d1 = *src1, d2 = *src2, d3 = *imm; break;
-    case TYPE_R: src1R(); src2R();         d1 = *src1, d2 = *src2; break;
+    case TYPE_I: src1R();          immI(); break;
+    case TYPE_U:                   immU(); break;
+    case TYPE_S: src1R(); src2R(); immS(); break;
+    case TYPE_J:                   immJ(); break; 
+    case TYPE_B: src1R(); src2R(); immB(); break;
+    case TYPE_R: src1R(); src2R();         break;
   }
   //difftest
-  printf("rs1 = %d\nrs2 = %d\nrd = %d\n", rs1, rs2, *rd);
-  printf("d1 = %08x\nd2 = %08x\nd3 = %08x\n", d1, d2, d3);
+  // int d1, d2, d3;
+  // switch (type) {
+  //   case TYPE_I: src1R();          immI(); d1 = *src1, d2 = *imm; break;
+  //   case TYPE_U:                   immU(); d1 = s->pc, d2 = *imm; break;
+  //   case TYPE_S: src1R(); src2R(); immS(); d1 = *src1, d2 = *src2, d3 = *imm; break;
+  //   case TYPE_J:                   immJ(); d1 = s->pc, d2 = *imm;  break; 
+  //   case TYPE_B: src1R(); src2R(); immB(); d1 = *src1, d2 = *src2, d3 = *imm; break;
+  //   case TYPE_R: src1R(); src2R();         d1 = *src1, d2 = *src2; break;
+  // }
+  // printf("rs1 = %d\nrs2 = %d\nrd = %d\n", rs1, rs2, *rd);
+  // printf("d1 = %08x\nd2 = %08x\nd3 = %08x\n", d1, d2, d3);
 }
 
 void ftrace_jal(Decode *s, word_t rd){
   #ifdef CONFIG_FTRACE_COND
     void ftrace_call(vaddr_t pc, vaddr_t dnpc);
-    void ftrace_ret(vaddr_t pc);
     if (rd == 1)
       ftrace_call(s->pc, s->dnpc);
   #endif
 }
 
-void ftrace_jalr(Decode *s, word_t rd){
+void ftrace_jalr(Decode *s, word_t rd, word_t imm){
   #ifdef CONFIG_FTRACE_COND
     void ftrace_call(vaddr_t pc, vaddr_t dnpc);
     void ftrace_ret(vaddr_t pc);
     if (s->isa.inst.val == 0x00008067)
       ftrace_ret(s->pc);
     else if (rd == 1)
+      ftrace_call(s->pc, s->dnpc);
+    else if (rd == 0 && imm == 0)
       ftrace_call(s->pc, s->dnpc);
   #endif
 }
@@ -96,9 +105,9 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? ??? ????? 01101 11", lui    , U, R(rd) = imm);
   INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc  , U, R(rd) = s->pc + imm);
 
-  INSTPAT("??????? ????? ????? ??? ????? 1101111" , jal    , J, R(rd) = s->pc + 4; s->dnpc = s->pc + imm; ftrace_jal(s, rd));
-  INSTPAT("??????? ????? ????? 000 ????? 1100111" , jalr   , I, t = s->pc + 4; s->dnpc = (src1 + imm)&(~1); R(rd) = t, ftrace_jalr(s, rd));
-  
+  INSTPAT("??????? ????? ????? ??? ????? 1101111" , jal    , J, s->dnpc = s->pc + imm; ftrace_jal(s, rd); R(rd) = s->pc + 4);
+  INSTPAT("??????? ????? ????? 000 ????? 1100111" , jalr   , I, t = s->pc + 4; s->dnpc = (src1 + imm)&(~(word_t)1); ftrace_jalr(s, rd, imm); R(rd) = t);
+
   INSTPAT("0000000 ????? ????? 000 ????? 01100 11", add    , R, R(rd) = src1 + src2);
   INSTPAT("0100000 ????? ????? 000 ????? 01100 11", sub    , R, R(rd) = src1 - src2);
   INSTPAT("0000000 ????? ????? 111 ????? 01100 11", and    , R, R(rd) = src1 & src2);
@@ -119,7 +128,9 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 000 ????? 00100 11", addi   , I, R(rd) = src1 + imm);
   INSTPAT("??????? ????? ????? 111 ????? 00100 11", andi   , I, R(rd) = src1 & imm);
   INSTPAT("??????? ????? ????? 100 ????? 00100 11", xori   , I, R(rd) = src1 ^ imm);
+  INSTPAT("??????? ????? ????? 110 ????? 00100 11", ori    , I, R(rd) = src1 | imm);
   INSTPAT("??????? ????? ????? 011 ????? 00100 11", sltui  , I, R(rd) = src1 < imm);
+  INSTPAT("??????? ????? ????? 010 ????? 00100 11", slti   , I, R(rd) = (sword_t)src1 < (sword_t)imm);
   INSTPAT("000000 ?????? ????? 001 ????? 00100 11", slli   , I, R(rd) = src1 << BITS(imm, 5, 0));
   INSTPAT("000000 ?????? ????? 101 ????? 00100 11", srli   , I, R(rd) = src1 >> BITS(imm, 5, 0));
   INSTPAT("010000 ?????? ????? 101 ????? 00100 11", srai   , I, R(rd) = (sword_t)src1 >> BITS(imm, 5, 0));

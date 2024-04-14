@@ -23,7 +23,7 @@ void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
 void init_disasm(const char *triple);
-void expr_test();
+// void expr_test();
 
 void ftrace_init(const char* elf_file);
 
@@ -148,10 +148,12 @@ void init_monitor(int argc, char *argv[]) {
 #endif
 
 //PA1.2
-  expr_test();
+  // expr_test();
 
   //printf("%s\n", elf_file);
-  //ftrace_init(elf_file);
+#ifdef CONFIG_FTRACE_COND
+  ftrace_init(elf_file);
+#endif
 
   /* Display welcome message. */
   welcome();

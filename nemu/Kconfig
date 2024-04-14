@@ -116,12 +116,12 @@ config IRINGBUF_COND
 
 config MTRACE
   bool "Enable memory tracer"
-  default n
+  default y
 
 config MTRACE_COND
   depends on MTRACE
   string "Only output memory trace when the condition is true"
-  default "false"
+  default "true"
 
 config FTRACE
   bool "Enable function tracer"

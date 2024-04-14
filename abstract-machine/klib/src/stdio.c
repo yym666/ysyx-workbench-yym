@@ -75,6 +75,11 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         } 
         break;
       }
+      case 'c':{ 
+        char cur = va_arg(ap, int);
+        out[pos++] = cur;
+        break;
+      }
       case 'd': case 'i':{
         int cur = va_arg(ap, int);
         int sig = cur >= 0 ? 1 : -1;
@@ -151,6 +156,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         }
         break;
       }
+      default: assert(0); break;
     }
   }
   out[pos] = '\0';

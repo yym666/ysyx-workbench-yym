@@ -23,18 +23,19 @@
  * This is useful when you use the `si' command.
  * You can modify this value as you want.
  */
-#define MAX_INST_TO_PRINT 300
-//#define MAX_INST_TO_PRINT 10
+// #define MAX_INST_TO_PRINT 300
+#define MAX_INST_TO_PRINT 10
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 
+uint64_t sint1, sint2;
+
 void device_update();
 //PA1.3
 void watchpoint();
-void iringbuf_display();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
@@ -42,7 +43,6 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #endif
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
-//PA1.3
   IFDEF(CONFIG_WATCHPOINT, watchpoint());
 }
 
@@ -85,11 +85,14 @@ static void exec_once(Decode *s, vaddr_t pc) {
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
+    // sint1 = get_time();
     exec_once(&s, cpu.pc);
     g_nr_guest_inst ++;
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
+  //   sint2 = get_time();
+  // printf("time = %ld\n", sint2 - sint1);
   }
 }
 
@@ -122,7 +125,10 @@ void cpu_exec(uint64_t n) {
   execute(n);
   
   //just for test
-  //iringbuf_display();
+#ifdef CONFIG_ITRACE
+  void iringbuf_display();
+  iringbuf_display();
+#endif
 
   uint64_t timer_end = get_time();
   g_timer += timer_end - timer_start;

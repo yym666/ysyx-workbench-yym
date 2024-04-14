@@ -14,6 +14,7 @@ IRINGBUF_NODE iringbuf[MAX_IRINGBUF_NODE];
 int cur_node_pointer = 0;
 bool full_flags = 0;
 
+#ifdef CONFIG_ITRACE
 void iringbuf_update(word_t pc, uint32_t inst){
     iringbuf[cur_node_pointer].pc = pc;
     iringbuf[cur_node_pointer].inst = inst;
@@ -33,3 +34,10 @@ void iringbuf_display(){
         puts(logbuf);
     }
 }
+#else
+void iringbuf_display(){}
+void iringbuf_update(word_t pc, uint32_t inst){}
+#endif
+
+
+
