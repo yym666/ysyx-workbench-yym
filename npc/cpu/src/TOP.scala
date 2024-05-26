@@ -41,7 +41,6 @@ class TOP extends Module {
     val IDU = Module(new IDU())
     val EXU = Module(new EXU())
     val GPR = Module(new GPR())
-
     
     GPR.io.wen := MuxCase(
         false.B,

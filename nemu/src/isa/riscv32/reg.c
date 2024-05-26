@@ -23,6 +23,20 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
+void ref_isa_reg_display(CPU_state *ref_r) {
+//PA1.1
+  for (int i = 0; i < 32; ++i){
+    printf("%6s     0x%08x  0x%08x", regs[i], cpu.gpr[i], ref_r->gpr[i]);
+    if (cpu.gpr[i] != ref_r->gpr[i]) printf(" **\n");
+    else printf("\n");
+  }
+  printf("%6s     0x%08x  0x%08x\n", "pc  ", cpu.pc, ref_r->pc);
+  printf("%6s     0x%08x  0x%08x\n", "mepc", cpu.csr.mepc, ref_r->csr.mepc);
+  printf("%6s     0x%08x  0x%08x\n", "mstat", cpu.csr.mstatus, ref_r->csr.mstatus);
+  printf("%6s     0x%08x  0x%08x\n", "mcaus", cpu.csr.mcause, ref_r->csr.mcause);
+  printf("%6s     0x%08x  0x%08x\n", "mtvec", cpu.csr.mtvec, ref_r->csr.mtvec);
+}
+
 void isa_reg_display() {
 //PA1.1
   for (int i = 0; i < 32; ++i){
@@ -33,7 +47,7 @@ void isa_reg_display() {
 
 word_t isa_reg_str2val(const char *s, bool *success) {
 //PA1.1
-  s = s + 1;
+  //s = s + 1;
   for (int i = 0; i < 32; ++i){
     if (strcmp(regs[i], s) == 0){
       return cpu.gpr[i];

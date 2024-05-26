@@ -66,6 +66,7 @@ DIRC += $(NPC_HOME)/sim             \
         $(NPC_HOME)/sim/memory      \
         $(NPC_HOME)/sim/monitor     \
         $(NPC_HOME)/sim/monitor/sdb \
+        $(NPC_HOME)/sim/device/io   \
         $(NPC_HOME)/sim/utils		\
 		$(NPC_HOME)/sim/engine      \
 		$(NPC_HOME)/sim/engine/interpreter

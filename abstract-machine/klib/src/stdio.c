@@ -55,6 +55,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
       width = width * 10 + *fmt - '0';
       fmt++;
     }
+    // if (flags != ' ') putch('');
 
     precise = 0;
     if (*fmt == '.'){
@@ -80,7 +81,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         out[pos++] = cur;
         break;
       }
-      case 'd': case 'i':{
+      case 'd': case 'i': case 'l': {
         int cur = va_arg(ap, int);
         int sig = cur >= 0 ? 1 : -1;
         cur = cur * sig;
@@ -123,12 +124,12 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         int len = 0;
 
         while (cur != 0){
-          unsigned int now = cur % 10;
+          unsigned int now = cur % 16;
           if (now < 10) num[len++] = (char)(now + '0');
           else if (now >= 10 && now <= 15)
             num[len++] = (char)(now - 10 + 'a');
           else assert(0);
-          cur /= 10;
+          cur /= 16;
         }
         num[len] = '\0';
 
@@ -156,7 +157,7 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         }
         break;
       }
-      default: assert(0); break;
+      default: putch(specifier); assert(0); break;
     }
   }
   out[pos] = '\0';

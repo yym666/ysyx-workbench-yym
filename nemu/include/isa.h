@@ -30,6 +30,7 @@ void init_isa();
 
 // reg
 extern CPU_state cpu;
+void ref_isa_reg_display(CPU_state *ref_r);
 void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 

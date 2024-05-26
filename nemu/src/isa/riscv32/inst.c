@@ -25,12 +25,35 @@
 enum {
   TYPE_I, TYPE_U, TYPE_S,
   TYPE_J, TYPE_B, TYPE_R,
-  TYPE_N, // none
+  TYPE_N, TYPE_C,  // none
 };
+
+#define MRET() { \
+  s->dnpc = CSR(0x341); \
+  cpu.csr.mstatus &= ~(1<<3); \
+  cpu.csr.mstatus |= ((cpu.csr.mstatus&(1<<7))>>4); \
+  cpu.csr.mstatus |= (1<<7); \
+  cpu.csr.mstatus &= ~((1<<11)+(1<<12)); \
+}
+
+static vaddr_t *csr_register(word_t imm) {
+  switch (imm)
+  {
+  case 0x341: return &(cpu.csr.mepc);
+  case 0x342: return &(cpu.csr.mcause);
+  case 0x300: return &(cpu.csr.mstatus);
+  case 0x305: return &(cpu.csr.mtvec);
+  default: panic("Unknown csr");
+  }
+}
+
+#define ECALL(dnpc) {dnpc = (isa_raise_intr(11, s->pc)); }
+#define CSR(i)  *csr_register(i)
 
 #define src1R() do { *src1 = R(rs1); } while (0)
 #define src2R() do { *src2 = R(rs2); } while (0)
 #define immI() do { *imm = SEXT(BITS(i, 31, 20), 12); } while(0)
+#define immC() do { *imm = BITS(i, 31, 20); } while(0)
 #define immU() do { *imm = SEXT(BITS(i, 31, 12), 20) << 12; } while(0)
 #define immS() do { *imm = (SEXT(BITS(i, 31, 25), 7) << 5) | BITS(i, 11, 7); } while(0)
 #define immJ() do { *imm = (SEXT((BITS(i, 31, 31) << 19) | \
@@ -42,13 +65,15 @@ enum {
                                  (BITS(i, 30, 25) <<  4) | \
                                  (BITS(i, 11,  8)), 12) << 1); } while(0)
 
-static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
+static void decode_operand(Decode *s, int *rs1forcsr, int *rd, word_t *src1, word_t *src2, word_t *imm, int type) {
   uint32_t i = s->isa.inst.val;
   int rs1 = BITS(i, 19, 15);
   int rs2 = BITS(i, 24, 20);
+  *rs1forcsr = rs1;
   *rd     = BITS(i, 11, 7);
   switch (type) {
     case TYPE_I: src1R();          immI(); break;
+    case TYPE_C: src1R();          immC(); break;
     case TYPE_U:                   immU(); break;
     case TYPE_S: src1R(); src2R(); immS(); break;
     case TYPE_J:                   immJ(); break; 
@@ -91,13 +116,13 @@ void ftrace_jalr(Decode *s, word_t rd, word_t imm){
 }
 
 static int decode_exec(Decode *s) {
-  int rd = 0;
+  int rd = 0, rs1forcsr = 0;
   word_t src1 = 0, src2 = 0, imm = 0, t = 0;
   s->dnpc = s->snpc;
 
 #define INSTPAT_INST(s) ((s)->isa.inst.val)
 #define INSTPAT_MATCH(s, name, type, ... /* execute body */ ) { \
-  decode_operand(s, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
+  decode_operand(s, &rs1forcsr, &rd, &src1, &src2, &imm, concat(TYPE_, type)); \
   __VA_ARGS__ ; \
 }
 
@@ -121,6 +146,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("0000001 ????? ????? 101 ????? 01100 11", divu   , R, R(rd) = src1 / src2);
   INSTPAT("0000001 ????? ????? 000 ????? 01100 11", mul    , R, R(rd) = src1 * src2);
   INSTPAT("0000001 ????? ????? 001 ????? 01100 11", mulh   , R, R(rd) = ((int64_t)(sword_t)src1 * (int64_t)(sword_t)src2) >> 32);
+  INSTPAT("0000001 ????? ????? 011 ????? 01100 11", mulhu  , R, R(rd) = ((int64_t)src1 * (int64_t)src2) >> 32);
   INSTPAT("0100000 ????? ????? 101 ????? 01100 11", sra    , R, R(rd) = (sword_t)src1 >> BITS(src2, 4, 0));
   INSTPAT("0000000 ????? ????? 101 ????? 01100 11", srl    , R, R(rd) = src1 >> BITS(src2, 4, 0));
   INSTPAT("0000000 ????? ????? 001 ????? 01100 11", sll    , R, R(rd) = src1 << BITS(src2, 4, 0));
@@ -153,8 +179,16 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 101 ????? 11000 11", bge    , B, s->dnpc = ((sword_t)src1 >= (sword_t)src2) ? (s->pc + imm) : s->snpc);
   INSTPAT("??????? ????? ????? 111 ????? 11000 11", bgeu   , B, s->dnpc = (src1 >= src2) ? (s->pc + imm) : s->snpc);
 
+
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , C, printf("src1=%x rd = %x\n", rs1forcsr, rd); if(rd != 0) {R(rd) = CSR(imm);} CSR(imm) = src1 );
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , C, R(rd) = CSR(imm); if(rs1forcsr != 0) {CSR(imm) |= src1;} );
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, ECALL(s->dnpc));
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, MRET());
+
   INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak , N, NEMUTRAP(s->pc, R(10))); // R(10) is $a0
   INSTPAT("??????? ????? ????? ??? ????? ????? ??", inv    , N, INV(s->pc));
+
+
   INSTPAT_END();
 
   R(0) = 0; // reset $zero to 0

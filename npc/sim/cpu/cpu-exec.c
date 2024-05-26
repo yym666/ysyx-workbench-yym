@@ -156,8 +156,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
   if (halt) NPCTRAP(s->pc, 0);
 
   single_cycle();
+#ifdef CONFIG_DIFFTEST
   RegUpdate();
   trace_and_difftest(s, top.io_pc);
+#endif
 
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;

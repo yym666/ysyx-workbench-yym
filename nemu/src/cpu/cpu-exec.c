@@ -144,6 +144,7 @@ void cpu_exec(uint64_t n) {
           nemu_state.halt_pc);
       if (nemu_state.state == NEMU_ABORT || nemu_state.halt_ret != 0){
         #ifdef CONFIG_IRINGBUF_COND
+          void iringbuf_display();
           if (IRINGBUF_COND) iringbuf_display();
         #endif
       }

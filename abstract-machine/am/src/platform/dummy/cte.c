@@ -9,6 +9,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
 }
 
 void yield() {
+  printf("ADSFDS");
 }
 
 bool ienabled() {

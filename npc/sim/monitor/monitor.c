@@ -161,9 +161,10 @@ void init_monitor(int argc, char *argv[]) {
   //expr_test();
 
   printf("%s\n", elf_file);
+#ifdef CONFIG_FTRACE
   if (ftrace_flag)
     ftrace_init(elf_file);
-
+#endif
   /* Display welcome message. */
   welcome();
 }
