@@ -17,6 +17,8 @@ class EXU extends Module {
         val excode  =  Input(UInt(LEN_EXC.W))
         val mem_op  =  Input(UInt(LEN_MEM.W))
         val waddr   = Output(UInt(ADDR_WIDTH.W))
+
+        val csr_data=  Input(UInt(DATA_WIDTH.W))
     })
     io.alu_res := MuxCase(
         0.U(DATA_WIDTH.W),
@@ -39,7 +41,10 @@ class EXU extends Module {
             (io.excode === ALU_REM)  -> (io.data1.asSInt % io.data2.asSInt).asUInt,
             (io.excode === ALU_REMU) -> (io.data1 % io.data2).asUInt,
             (io.excode === ALU_JALR) -> ((io.data1 + io.data2) & ~1.U(DATA_WIDTH.W)),
-            (io.excode === ALU_JAL)  -> (io.data1 + io.data2)
+            (io.excode === ALU_JAL)  -> (io.data1 + io.data2),
+
+            (io.excode === ALU_CSRW) -> (io.csr_data),
+            (io.excode === ALU_CSRS) -> (io.csr_data | io.data1)
         )
     )
     io.br_taken := MuxCase(
@@ -52,7 +57,8 @@ class EXU extends Module {
             (io.excode === BRC_BGE)  -> (io.data1.asSInt >= io.data2.asSInt),
             (io.excode === BRC_BGEU) -> (io.data1 >= io.data2),
             (io.excode === ALU_JALR) -> (true.B),
-            (io.excode === ALU_JAL)  -> (true.B)
+            (io.excode === ALU_JAL)  -> (true.B),
+            (io.excode === FORCE_JUMP) -> (true.B)
         )
     )
     io.waddr := MuxCase(

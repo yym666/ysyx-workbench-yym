@@ -10,4 +10,6 @@ object MyConfig {
     val START_ADDR  = 0x80000000L
     val REG_NUM     = 32
     val REG_WIDTH   = 5
+    val CSR_NUM     = 8
+    val CSR_WIDTH   = 3
 }

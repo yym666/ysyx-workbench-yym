@@ -71,6 +71,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     mtrace_write(addr, len, data);
   #endif
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   // pmem_write(addr, len, data); return;
   out_of_bound(addr);

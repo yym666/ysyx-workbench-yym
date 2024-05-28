@@ -8,8 +8,6 @@ import unit._
 import _root_.stage.IDU
 import _root_.stage.EXU
 import _root_.stage.IFU
-import _root_.blackbox.TRP
-import javax.xml.transform.OutputKeys
 
 class TOP extends Module {
     val io = IO(new Bundle {
@@ -41,14 +39,7 @@ class TOP extends Module {
     val IDU = Module(new IDU())
     val EXU = Module(new EXU())
     val GPR = Module(new GPR())
-    
-    GPR.io.wen := MuxCase(
-        false.B,
-        Seq(
-            (IDU.io.reg_op === REG_WT) -> (true.B),
-            (IDU.io.reg_op === REG_RD) -> (false.B)
-        )
-    )
+    val CSR = Module(new CSR())
     
     IDU.io.rs1_data <> GPR.io.rdata1
     IDU.io.rs2_data <> GPR.io.rdata2
@@ -59,7 +50,8 @@ class TOP extends Module {
     EXU.io.data2  <> IDU.io.op2_data
     EXU.io.excode <> IDU.io.excode
     EXU.io.mem_op <> IDU.io.mem_op
-    IFU.io.pc     <> IDU.io.pc
+    EXU.io.csr_data <> CSR.io.rdata
+    IFU.io.pc       <> IDU.io.pc
     IFU.io.br_taken  <> EXU.io.br_taken
     IFU.io.br_target := MuxCase(
         IDU.io.br_target,
@@ -69,6 +61,27 @@ class TOP extends Module {
         )
     )
 
+    CSR.io.addr <> IDU.io.csr_addr
+    CSR.io.wen := MuxCase(
+        false.B,
+        Seq(
+            (IDU.io.csr_op === CSR_WT) -> (true.B)
+        )
+    )
+    CSR.io.wdata <> EXU.io.alu_res
+
+    CSR.io.set_mcause <> IDU.io.set_mcause
+    CSR.io.set_mcause_val <> IDU.io.set_mcause_val
+    CSR.io.set_mepc <> IDU.io.set_mepc
+    CSR.io.set_mepc_val <> IDU.io.set_mepc_val
+
+    GPR.io.wen := MuxCase(
+        false.B,
+        Seq(
+            (IDU.io.reg_op === REG_WT) -> (true.B),
+            (IDU.io.reg_op === REG_RD) -> (false.B)
+        )
+    )
     GPR.io.waddr <> IDU.io.rd_addr
     GPR.io.wdata := MuxCase(
         EXU.io.alu_res,
@@ -100,8 +113,9 @@ class TOP extends Module {
     io.br_target := MuxCase(
         IDU.io.br_target,
         Seq(
-            (io.inst_code === isJALR) -> (EXU.io.alu_res),
-            (io.inst_code === isJAL ) -> (EXU.io.alu_res)
+            (io.inst_code === isJALR)   -> (EXU.io.alu_res),
+            (io.inst_code === isJAL )   -> (EXU.io.alu_res),
+            (io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
         )
     )
 }

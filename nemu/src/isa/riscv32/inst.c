@@ -30,10 +30,6 @@ enum {
 
 #define MRET() { \
   s->dnpc = CSR(0x341); \
-  cpu.csr.mstatus &= ~(1<<3); \
-  cpu.csr.mstatus |= ((cpu.csr.mstatus&(1<<7))>>4); \
-  cpu.csr.mstatus |= (1<<7); \
-  cpu.csr.mstatus &= ~((1<<11)+(1<<12)); \
 }
 
 static vaddr_t *csr_register(word_t imm) {
@@ -180,7 +176,7 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 111 ????? 11000 11", bgeu   , B, s->dnpc = (src1 >= src2) ? (s->pc + imm) : s->snpc);
 
 
-  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , C, printf("src1=%x rd = %x\n", rs1forcsr, rd); if(rd != 0) {R(rd) = CSR(imm);} CSR(imm) = src1 );
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , C, if(rd != 0) {R(rd) = CSR(imm);} CSR(imm) = src1 );
   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , C, R(rd) = CSR(imm); if(rs1forcsr != 0) {CSR(imm) |= src1;} );
   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, ECALL(s->dnpc));
   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, MRET());

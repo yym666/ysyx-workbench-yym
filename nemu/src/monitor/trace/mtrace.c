@@ -13,6 +13,6 @@ void mtrace_read(paddr_t addr, int len){
 }
 
 void mtrace_write(paddr_t addr, int len, word_t data){
-    if (addr == 0x800dc1b0)
+    if (addr == 0x800dc1f8)
         Log("mtrace_write: " FMT_PADDR ", len=%d, data = %x.", addr, len, data);
 }

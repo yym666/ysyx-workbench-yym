@@ -39,6 +39,7 @@ static void restart() {
   top.eval();
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
+  cpu.csr.mstatus = 0x00001800;
 //gpr = general purpose register
 }
 

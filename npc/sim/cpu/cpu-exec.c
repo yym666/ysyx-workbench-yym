@@ -54,6 +54,7 @@ static void single_cycle() {
     top.eval();
 }
 void difftest_step(vaddr_t pc, vaddr_t npc);
+void difftest_skip_ref();
 
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
@@ -82,6 +83,7 @@ void PrintaLog(){
   Log("br_target: %08x", top.io_br_target);
   Log("br_target: %d", top.io_inst_code);
   Log("isStore: %s", top.io_Store ? "true" : "false");
+  Log("isLoad : %s", top.io_Load ? "true" : "false");
   if (top.io_Store){
     Log("wdata: %08x", top.io_data_sram_wdata);
     Log("waddr: %08x", top.io_data_sram_addr);
@@ -158,6 +160,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
   single_cycle();
 #ifdef CONFIG_DIFFTEST
   RegUpdate();
+  // if (top.io_Store == true && top.io_data_sram_addr == 0xa00003f8)
+  //   difftest_skip_ref();
+  // if (top.io_Load  == true && (top.io_data_sram_addr == 0xa0000048 || top.io_data_sram_addr == 0xa000004c))
+  //   difftest_skip_ref();
   trace_and_difftest(s, top.io_pc);
 #endif
 

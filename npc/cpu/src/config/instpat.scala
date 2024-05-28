@@ -27,6 +27,7 @@ object InstPat {
 
     val ADDI    = BitPat("b??????_??????_?????_000_?????_0010011")
     val ANDI    = BitPat("b??????_??????_?????_111_?????_0010011")
+    val ORI     = BitPat("b??????_??????_?????_110_?????_0010011")
     val XORI    = BitPat("b??????_??????_?????_100_?????_0010011")
     val SLTUI   = BitPat("b??????_??????_?????_011_?????_0010011")
     val SLLI    = BitPat("b000000_??????_?????_001_?????_0010011")
@@ -50,6 +51,11 @@ object InstPat {
     val BLTU    = BitPat("b??????_??????_?????_110_?????_1100011")
     val BGE     = BitPat("b??????_??????_?????_101_?????_1100011")
     val BGEU    = BitPat("b??????_??????_?????_111_?????_1100011")
+
+    val CSRRW   = BitPat("b??????_??????_?????_001_?????_1110011")
+    val CSRRS   = BitPat("b??????_??????_?????_010_?????_1110011")
+    val ECALL   = BitPat("b000000_000000_00000_000_00000_1110011")
+    val MRET    = BitPat("b001100_000010_00000_000_00000_1110011")
 
     val JAL     = BitPat("b??????_??????_?????_???_?????_1101111")
     val JALR    = BitPat("b??????_??????_?????_000_?????_1100111")
@@ -75,13 +81,17 @@ object InstPat {
     val ALU_DIVU    = 16.U(LEN_EXC.W)
     val ALU_JALR    = 17.U(LEN_EXC.W)
     val ALU_JAL     = 18.U(LEN_EXC.W)
+    val ALU_CSRW    = 19.U(LEN_EXC.W)
+    val ALU_CSRS    = 20.U(LEN_EXC.W)
     
-    val BRC_BEQ     = 20.U(LEN_EXC.W)
-    val BRC_BNE     = 21.U(LEN_EXC.W)
-    val BRC_BLT     = 22.U(LEN_EXC.W)
-    val BRC_BLTU    = 23.U(LEN_EXC.W)
-    val BRC_BGE     = 24.U(LEN_EXC.W)
-    val BRC_BGEU    = 25.U(LEN_EXC.W)
+    val BRC_BEQ     = 21.U(LEN_EXC.W)
+    val BRC_BNE     = 22.U(LEN_EXC.W)
+    val BRC_BLT     = 23.U(LEN_EXC.W)
+    val BRC_BLTU    = 24.U(LEN_EXC.W)
+    val BRC_BGE     = 25.U(LEN_EXC.W)
+    val BRC_BGEU    = 26.U(LEN_EXC.W)
+
+    val FORCE_JUMP  = 30.U(LEN_EXC.W)
 
     val LEN_OPT = 3
     val OP1_ERR = 0.U(LEN_OPT.W)
@@ -110,6 +120,11 @@ object InstPat {
     val REG_ERR = 0.U(LEN_REG.W)
     val REG_WT  = 1.U(LEN_REG.W)
     val REG_RD  = 2.U(LEN_REG.W)
+
+    val LEN_CSR = 3
+    val CSR_ERR = 0.U(LEN_CSR.W)
+    val CSR_WT  = 1.U(LEN_CSR.W)
+    val CSR_ECA = 2.U(LEN_CSR.W)
 
     val INS_LEN     = 8
     val isEBREAK    = 0.U(INS_LEN.W)
@@ -140,6 +155,7 @@ object InstPat {
     val isSLLI      = 21.U(INS_LEN.W)
     val isSRLI      = 22.U(INS_LEN.W)
     val isSRAI      = 23.U(INS_LEN.W)
+    val isORI       = 45.U(INS_LEN.W)
 
     val isLB        = 24.U(INS_LEN.W)
     val isLH        = 25.U(INS_LEN.W)
@@ -159,7 +175,12 @@ object InstPat {
     val isBGE       = 37.U(INS_LEN.W)
     val isBGEU      = 38.U(INS_LEN.W)
 
-    val isJAL       = 39.U(INS_LEN.W)
-    val isJALR      = 40.U(INS_LEN.W)
-//  watch 50
+    val isCSRRW     = 39.U(INS_LEN.W)
+    val isCSRRS     = 40.U(INS_LEN.W)
+    val isECALL     = 41.U(INS_LEN.W)
+    val isMRET      = 42.U(INS_LEN.W)
+
+    val isJAL       = 43.U(INS_LEN.W)
+    val isJALR      = 44.U(INS_LEN.W)
+//  watch 50=ecall & 45=ori
 }
