@@ -119,19 +119,18 @@ int vsnprintf(char *out, size_t n, const char *fmt, va_list ap) {
         break;
       }
       case 'x': case 'p': {
-        uint64_t cur = va_arg(ap, uint64_t);
-        char num[25];
-        int len = 0;
+         unsigned long d = va_arg(ap, unsigned long);
+          char num[20] = {0};
+          int rem = 0;
+          int len = 0;
 
-        while (cur != 0){
-          unsigned int now = cur % 16;
-          if (now < 10) num[len++] = (char)(now + '0');
-          else if (now >= 10 && now <= 15)
-            num[len++] = (char)(now - 10 + 'a');
-          else assert(0);
-          cur /= 16;
-        }
-        num[len] = '\0';
+          do {
+            rem = d % 16;
+            d = d / 16;
+            if (rem <= 9) num[len++] = rem + '0';
+            else num[len++] = rem - 10 + 'a';
+            // putch(num[len-1]);
+          } while (d > 0);
 
         if (flags == '+') assert(0);
 

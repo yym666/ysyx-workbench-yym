@@ -81,13 +81,17 @@ void PrintaLog(){
   Log("res: %08x", top.io_res);
   Log("br_taken : %d", top.io_br_taken);
   Log("br_target: %08x", top.io_br_target);
-  Log("br_target: %d", top.io_inst_code);
+  Log("inst_code: %d", top.io_inst_code);
   Log("isStore: %s", top.io_Store ? "true" : "false");
   Log("isLoad : %s", top.io_Load ? "true" : "false");
   if (top.io_Store){
     Log("wdata: %08x", top.io_data_sram_wdata);
     Log("waddr: %08x", top.io_data_sram_addr);
   }
+// if (top.io_out2 == 2){
+//   Log("out1: %08x", top.io_out1);
+//   Log("out2: %d", top.io_out2);
+// }
   printf("\n");
 }
 
@@ -148,7 +152,12 @@ static void exec_once(Decode *s, vaddr_t pc) {
   if (top.io_inst_code == isJAL) ftrace_jal(s, top.io_rd);
   if (top.io_inst_code == isJALR) ftrace_jalr(s, top.io_rd);
   top.eval();
-
+// if (top.io_out2 == 3){
+//   Log("pc: %08x", top.io_pc);
+//   Log("out1: %08x", top.io_out1);
+//   Log("out2: %d", top.io_out2);
+//   PrintaLog();
+// }
 #ifdef PRINT_LOG
   PrintaLog();
 #endif

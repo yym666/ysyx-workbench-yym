@@ -34,6 +34,10 @@ class TOP extends Module {
         val data_sram_addr  = Output(UInt(ADDR_WIDTH.W))
         val data_sram_wdata = Output(UInt(DATA_WIDTH.W))
         val data_sram_rdata =  Input(UInt(DATA_WIDTH.W))
+        val mepc     = Output(UInt(DATA_WIDTH.W))
+        val mtvec     = Output(UInt(DATA_WIDTH.W))
+        val out1     = Output(UInt(DATA_WIDTH.W))
+        val out2     = Output(UInt(DATA_WIDTH.W))
     })
     val IFU = Module(new IFU())
     val IDU = Module(new IDU())
@@ -46,6 +50,9 @@ class TOP extends Module {
     GPR.io.raddr1 <> IDU.io.rs1_addr
     GPR.io.raddr2 <> IDU.io.rs2_addr
 
+    io.mepc <> CSR.io.get_mepc
+    io.mtvec <> CSR.io.get_mtvec
+
     EXU.io.data1  <> IDU.io.op1_data
     EXU.io.data2  <> IDU.io.op2_data
     EXU.io.excode <> IDU.io.excode
@@ -56,8 +63,10 @@ class TOP extends Module {
     IFU.io.br_target := MuxCase(
         IDU.io.br_target,
         Seq(
-            (io.inst_code === isJALR) -> (EXU.io.alu_res),
-            (io.inst_code === isJAL ) -> (EXU.io.alu_res)
+            (io.inst_code === isJALR)   -> (EXU.io.alu_res),
+            (io.inst_code === isJAL )   -> (EXU.io.alu_res),
+            (io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
+            (io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
         )
     )
 
@@ -69,6 +78,8 @@ class TOP extends Module {
         )
     )
     CSR.io.wdata <> EXU.io.alu_res
+    EXU.io.alu_res <> io.out1
+    IDU.io.csr_addr <> io.out2
 
     CSR.io.set_mcause <> IDU.io.set_mcause
     CSR.io.set_mcause_val <> IDU.io.set_mcause_val
@@ -115,6 +126,7 @@ class TOP extends Module {
         Seq(
             (io.inst_code === isJALR)   -> (EXU.io.alu_res),
             (io.inst_code === isJAL )   -> (EXU.io.alu_res),
+            (io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
             (io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
         )
     )

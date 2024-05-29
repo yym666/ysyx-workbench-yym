@@ -5,7 +5,6 @@
 static Context* (*user_handler)(Event, Context*) = NULL;
 
 Context* __am_irq_handle(Context *c) {
-printf("EEEEE\n\n");
   if (user_handler) {
     Event ev = {0};
     switch (c->mcause) {
@@ -14,6 +13,7 @@ printf("EEEEE\n\n");
     }
 
     c = user_handler(ev, c);
+    printf("irq : : : %x %x\n", 1024, c->mepc);
     assert(c != NULL);
   }
 
@@ -42,7 +42,7 @@ Context *kcontext(Area kstack, void (*entry)(void *), void *arg) {
 
 void yield() {
 #ifdef __riscv_e
-  asm volatile("li a7, -1; ecall");
+  asm volatile("li a5, -1; ecall");
 #else
   asm volatile("li a7, -1; ecall");
 #endif

@@ -43,7 +43,7 @@ class EXU extends Module {
             (io.excode === ALU_JALR) -> ((io.data1 + io.data2) & ~1.U(DATA_WIDTH.W)),
             (io.excode === ALU_JAL)  -> (io.data1 + io.data2),
 
-            (io.excode === ALU_CSRW) -> (io.csr_data),
+            (io.excode === ALU_CSRW) -> (io.data1),
             (io.excode === ALU_CSRS) -> (io.csr_data | io.data1)
         )
     )

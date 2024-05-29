@@ -114,7 +114,7 @@ class IDU extends Module {
             CSRRW   -> List(ALU_CSRW, OP1_RS1, OP2_ERR, MEM_ERR, LSL_0, REG_WT, CSR_WT, isCSRRW),
             CSRRS   -> List(ALU_CSRS, OP1_RS1, OP2_ERR, MEM_ERR, LSL_0, REG_WT, CSR_WT, isCSRRS),
             ECALL   -> List(FORCE_JUMP, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ECA, isECALL),
-            MRET    -> List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isMRET),
+            MRET    -> List(FORCE_JUMP, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isMRET),
 
             JAL     -> List(ALU_JAL , OP1_PC , OP2_IMJ, MEM_ERR, LSL_0, REG_WT, CSR_ERR, isJAL),
             JALR    -> List(ALU_JALR, OP1_RS1, OP2_IMI, MEM_ERR, LSL_0, REG_WT, CSR_ERR, isJALR)
@@ -162,7 +162,7 @@ class IDU extends Module {
         false.B, Seq((csr_opt === CSR_ECA) -> true.B)
     )
     io.set_mepc_val := MuxCase(
-        0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> io.pc)
+        0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> (io.pc + 4.U(DATA_WIDTH.W)))
     )
 
     io.Store := Mux(mem_wen === MEM_ST, true.B, false.B)
