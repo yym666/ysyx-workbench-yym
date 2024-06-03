@@ -33,8 +33,16 @@ void init_isa();
 
 // reg
 extern CPU_state cpu;
-extern VTOP top;
+// extern VerilatedContext *contextp = NULL;
+// extern VerilatedVcdC *tfp = NULL;
+// extern VTOP* top = new VTOP{contextp};
+
 void isa_reg_display();
+
+// void sim_init();
+// void step_and_dump_wave();
+// void sim_exit();
+
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // // memory

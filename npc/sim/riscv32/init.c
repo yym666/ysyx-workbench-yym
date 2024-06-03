@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include <vcd.h>
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
@@ -29,14 +30,18 @@ static const uint32_t img [] = {
 static void restart() {
   /* Set the initial program counter. */
   cpu.pc = RESET_VECTOR;
-  top.reset = 1;
-  top.eval();
-  top.clock = 0;
-  top.eval();
-  top.clock = 1;
-  top.eval();
-  top.reset = 0;
-  top.eval();
+  top->reset = 1;
+  step_and_dump_wave();
+  top->clock = 0;
+  step_and_dump_wave();
+  top->clock = 1;
+  step_and_dump_wave();
+  top->clock = 0;
+  step_and_dump_wave();
+  top->clock = 1;
+  step_and_dump_wave();
+  top->reset = 0;
+  // step_and_dump_wave();
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
   cpu.csr.mstatus = 0x00001800;

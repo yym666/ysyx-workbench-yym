@@ -5,58 +5,75 @@ import chisel3.util._
 
 import config.MyConfig._
 import config.InstPat._
-import javax.xml.transform.OutputKeys
+import unit._
 
 class IDU extends Module {
     val io = IO(new Bundle {
-        val inst        =  Input(UInt(DATA_WIDTH.W))
-        val pc          =  Input(UInt(DATA_WIDTH.W))
-        val rs1_addr    = Output(UInt(REG_WIDTH.W))
-        val rs2_addr    = Output(UInt(REG_WIDTH.W))
+        val in  = Flipped(Decoupled(new MessageIF2ID))
+        val out =         Decoupled(new MessageID2EX)
+
+        //from gpr
         val rs1_data    =  Input(UInt(DATA_WIDTH.W))
         val rs2_data    =  Input(UInt(DATA_WIDTH.W))
-        val rd_addr     = Output(UInt(REG_WIDTH.W))
-        val op1_data    = Output(UInt(DATA_WIDTH.W))
-        val op2_data    = Output(UInt(DATA_WIDTH.W))
-        val mem_data    = Output(UInt(DATA_WIDTH.W))
-        val excode      = Output(UInt(LEN_EXC.W))
-        val mem_op      = Output(UInt(LEN_MEM.W))
-        val reg_op      = Output(UInt(LEN_REG.W))
-        val inst_code   = Output(UInt(INS_LEN.W))
+        val rs1_addr    = Output(UInt(REG_WIDTH.W))
+        val rs2_addr    = Output(UInt(REG_WIDTH.W))
 
-        val csr_op      = Output(UInt(LEN_CSR.W))
-        val csr_addr    = Output(UInt(CSR_WIDTH.W))
+        //for csr
+        val csr_wen     = Output(Bool())
+        val csr_rdata    =  Input(UInt(DATA_WIDTH.W))
+        val csr_raddr    = Output(UInt(CSR_WIDTH.W))
         val set_mcause  = Output(Bool())
         val set_mepc    = Output(Bool())
         val set_mcause_val  = Output(UInt(DATA_WIDTH.W))
         val set_mepc_val    = Output(UInt(DATA_WIDTH.W))
         
-        val br_target   = Output(UInt(ADDR_WIDTH.W))
         val halt        = Output(Bool())
 
 //      Load & Store
         val Store   = Output(Bool())
         val Load    = Output(Bool())
         val SL_len  = Output(UInt(5.W))
+        val idu_done    = Output(Bool())
     })
 
-    io.rs1_addr := io.inst(19, 15)
-    io.rs2_addr := io.inst(24, 20)
-    io.rd_addr  := io.inst(11,  7)
+    val wait_if2id :: wait_id2ex :: Nil = Enum(2)
+    val IDUstate = RegInit(wait_if2id)
+    IDUstate := MuxLookup(IDUstate, wait_if2id) (Seq(
+        wait_if2id  -> Mux(io.in.valid , wait_id2ex, wait_if2id),
+        wait_id2ex  -> Mux(io.out.ready, wait_if2id, wait_id2ex)
+    ))
+    io.out.valid := Mux(IDUstate === wait_if2id, 0.U, 1.U)
+    io.in.ready  := Mux(IDUstate === wait_id2ex, 0.U, 1.U)
+    
+    io.idu_done := (IDUstate === wait_if2id)
+    // io.out.bits.pc      := io.in.bits.pc
+    // io.out.bits.inst    := io.in.bits.inst
+    // when (state === wait_if2id) {
+    //     io.out.valid := 0.U
+    //     io.in.ready  := 1.U
+    // }
+    // when (state === wait_id2ex) {
+    //     io.in.ready  := 0.U 
+    //     io.out.valid := 1.U     
+    // }
 
-    val imm_i       = io.inst(31, 20)
+    io.rs1_addr := io.in.bits.inst(19, 15)
+    io.rs2_addr := io.in.bits.inst(24, 20)
+    io.out.bits.rd_addr := io.in.bits.inst(11,  7)
+
+    val imm_i       = io.in.bits.inst(31, 20)
     val imm_i_sext  = Cat(Fill(20, imm_i(11)), imm_i)
-    val imm_u       = io.inst(31, 12)
+    val imm_u       = io.in.bits.inst(31, 12)
     val imm_u_shif  = Cat(imm_u, Fill(12, 0.U))
-    val imm_s       = Cat(io.inst(31, 25), io.inst(11, 7))
+    val imm_s       = Cat(io.in.bits.inst(31, 25), io.in.bits.inst(11, 7))
     val imm_s_sext  = Cat(Fill(20, imm_s(11)), imm_s)
-    val imm_b       = Cat(io.inst(31), io.inst(7), io.inst(30, 25), io.inst(11, 8))
+    val imm_b       = Cat(io.in.bits.inst(31), io.in.bits.inst(7), io.in.bits.inst(30, 25), io.in.bits.inst(11, 8))
     val imm_b_sext  = Cat(Fill(19, imm_b(11)), imm_b, 0.U(1.W))
-    val imm_j       = Cat(io.inst(31), io.inst(19, 12), io.inst(20), io.inst(30, 21))
+    val imm_j       = Cat(io.in.bits.inst(31), io.in.bits.inst(19, 12), io.in.bits.inst(20), io.in.bits.inst(30, 21))
     val imm_j_sext  = Cat(Fill(11, imm_j(19)), imm_j, 0.U(1.W))
 
     val decode = ListLookup(
-        io.inst,
+        io.in.bits.inst,
         List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isADDI),
         Array(
             EBREAK  -> List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isEBREAK),
@@ -121,14 +138,14 @@ class IDU extends Module {
         )
     )
     val excode_tmp :: op1 :: op2 :: mem_wen :: wb_len :: reg_wen :: csr_opt :: inst_code_tmp :: Nil = decode
-    io.op1_data := MuxCase(
+    io.out.bits.data1 := MuxCase(
         0.U(DATA_WIDTH.W),
         Seq(
             (op1 === OP1_RS1) -> (io.rs1_data),
-            (op1 === OP1_PC ) -> (io.pc)
+            (op1 === OP1_PC ) -> (io.in.bits.pc)
         )
     )
-    io.op2_data := MuxCase(
+    io.out.bits.data2 := MuxCase(
         0.U(DATA_WIDTH.W),
         Seq(
             (op2 === OP2_IMU) -> (imm_u_shif),
@@ -143,7 +160,7 @@ class IDU extends Module {
 //   case 0x305: return &(cpu.csr.mtvec);
 //   case 0x341: return &(cpu.csr.mepc);
 //   case 0x342: return &(cpu.csr.mcause);
-    io.csr_addr := MuxCase(
+    io.csr_raddr := MuxCase(
         0.U(CSR_WIDTH.W),
         Seq(
             (imm_i === 0x300.U) -> 1.U,
@@ -152,27 +169,20 @@ class IDU extends Module {
             (imm_i === 0x342.U) -> 4.U
         )
     )
-    io.set_mcause := MuxCase(
-        false.B, Seq((csr_opt === CSR_ECA) -> true.B)
-    )
-    io.set_mcause_val := MuxCase(
-        0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> 11.U)
-    )
-    io.set_mepc := MuxCase(
-        false.B, Seq((csr_opt === CSR_ECA) -> true.B)
-    )
-    io.set_mepc_val := MuxCase(
-        0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> (io.pc + 4.U(DATA_WIDTH.W)))
-    )
+    io.set_mcause       := MuxCase(false.B, Seq((csr_opt === CSR_ECA) -> true.B))
+    io.set_mcause_val   := MuxCase(0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> 11.U))
+    io.set_mepc         := MuxCase(false.B, Seq((csr_opt === CSR_ECA) -> true.B))
+    io.set_mepc_val     := MuxCase(0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> (io.in.bits.pc + 4.U(DATA_WIDTH.W))))
+    io.csr_wen          := MuxCase(false.B, Seq((csr_opt === CSR_WT) -> (true.B)))
+    io.out.bits.csr_data := io.csr_rdata
 
-    io.Store := Mux(mem_wen === MEM_ST, true.B, false.B)
-    io.Load  := Mux(mem_wen === MEM_LD, true.B, false.B)
+    io.Store := Mux(mem_wen === MEM_ST && IDUstate === wait_id2ex, true.B, false.B)
+    io.Load  := Mux(mem_wen === MEM_LD && IDUstate === wait_id2ex, true.B, false.B)
     io.SL_len := wb_len
     
-    io.mem_op   := mem_wen
-    io.reg_op   := reg_wen
-    io.csr_op   := csr_opt
-    io.mem_data := MuxCase(
+    io.out.bits.mem_opt  := mem_wen
+    io.out.bits.reg_wen  := (reg_wen === REG_WT)
+    io.out.bits.mem_data := MuxCase(
         0.U(DATA_WIDTH.W),
         Seq(
             (inst_code_tmp === isSB) -> (Cat(Fill(24, 0.U), io.rs2_data(7, 0))),
@@ -180,8 +190,8 @@ class IDU extends Module {
             (inst_code_tmp === isSW) -> (io.rs2_data)
         )
     )
-    io.excode   := excode_tmp
-    io.inst_code:= inst_code_tmp
-    io.br_target:= io.pc + imm_b_sext
-    io.halt     := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
+    io.out.bits.excode   := excode_tmp
+    io.out.bits.inst_code:= inst_code_tmp
+    io.out.bits.br_target:= io.in.bits.pc + imm_b_sext
+    io.halt             := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
 }

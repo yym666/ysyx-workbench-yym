@@ -13,6 +13,7 @@ class TOP extends Module {
     val io = IO(new Bundle {
         //inst sram interface
         val inst    =  Input(UInt(DATA_WIDTH.W))
+        val inst_req= Output(Bool())
         val pc      = Output(UInt(ADDR_WIDTH.W))
         val rs1     = Output(UInt(REG_WIDTH.W))
         val rs2     = Output(UInt(REG_WIDTH.W))
@@ -39,95 +40,87 @@ class TOP extends Module {
         val out1     = Output(UInt(DATA_WIDTH.W))
         val out2     = Output(UInt(DATA_WIDTH.W))
     })
+
     val IFU = Module(new IFU())
     val IDU = Module(new IDU())
     val EXU = Module(new EXU())
     val GPR = Module(new GPR())
     val CSR = Module(new CSR())
+
+    //IFU get inst from TOP
+    IFU.io.inst     <> io.inst
+    IFU.io.inst_req <> io.inst_req
     
-    IDU.io.rs1_data <> GPR.io.rdata1
-    IDU.io.rs2_data <> GPR.io.rdata2
-    GPR.io.raddr1 <> IDU.io.rs1_addr
-    GPR.io.raddr2 <> IDU.io.rs2_addr
+    IFU.io.out <> IDU.io.in
+    IDU.io.out <> EXU.io.in
 
-    io.mepc <> CSR.io.get_mepc
-    io.mtvec <> CSR.io.get_mtvec
 
-    EXU.io.data1  <> IDU.io.op1_data
-    EXU.io.data2  <> IDU.io.op2_data
-    EXU.io.excode <> IDU.io.excode
-    EXU.io.mem_op <> IDU.io.mem_op
-    EXU.io.csr_data <> CSR.io.rdata
-    IFU.io.pc       <> IDU.io.pc
+    IFU.io.idu_done  <> IDU.io.idu_done
+    //EXU <> IFU
     IFU.io.br_taken  <> EXU.io.br_taken
     IFU.io.br_target := MuxCase(
-        IDU.io.br_target,
+        EXU.io.br_target,
         Seq(
-            (io.inst_code === isJALR)   -> (EXU.io.alu_res),
-            (io.inst_code === isJAL )   -> (EXU.io.alu_res),
-            (io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
-            (io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
+            (EXU.io.inst_code === isJALR)   -> (EXU.io.alu_res),
+            (EXU.io.inst_code === isJAL )   -> (EXU.io.alu_res),
+            (EXU.io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
+            (EXU.io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
         )
     )
 
-    CSR.io.addr <> IDU.io.csr_addr
-    CSR.io.wen := MuxCase(
-        false.B,
-        Seq(
-            (IDU.io.csr_op === CSR_WT) -> (true.B)
-        )
-    )
+    // EXU <> CSR
     CSR.io.wdata <> EXU.io.alu_res
-    EXU.io.alu_res <> io.out1
-    IDU.io.csr_addr <> io.out2
 
-    CSR.io.set_mcause <> IDU.io.set_mcause
+    //IDU, EXU <> GRP
+    IDU.io.rs1_data <> GPR.io.rdata1
+    IDU.io.rs2_data <> GPR.io.rdata2
+    IDU.io.rs1_addr <> GPR.io.raddr1
+    IDU.io.rs2_addr <> GPR.io.raddr2
+
+    GPR.io.wen      <> EXU.io.reg_wen
+    GPR.io.waddr    <> EXU.io.rd_addr
+    GPR.io.wdata := MuxCase( EXU.io.alu_res,
+        Seq((EXU.io.mem_opt === MEM_LD)   -> (io.data_sram_rdata),
+            (EXU.io.inst_code === isJALR) -> (io.pc + 4.U),
+            (EXU.io.inst_code === isJAL)  -> (io.pc + 4.U)))
+    
+    //IDU <> CSR 
+    IDU.io.csr_raddr <> CSR.io.raddr
+    IDU.io.csr_rdata <> CSR.io.rdata
+    IDU.io.csr_wen   <> CSR.io.wen
+    CSR.io.set_mcause     <> IDU.io.set_mcause
     CSR.io.set_mcause_val <> IDU.io.set_mcause_val
-    CSR.io.set_mepc <> IDU.io.set_mepc
-    CSR.io.set_mepc_val <> IDU.io.set_mepc_val
+    CSR.io.set_mepc       <> IDU.io.set_mepc
+    CSR.io.set_mepc_val   <> IDU.io.set_mepc_val
 
-    GPR.io.wen := MuxCase(
-        false.B,
-        Seq(
-            (IDU.io.reg_op === REG_WT) -> (true.B),
-            (IDU.io.reg_op === REG_RD) -> (false.B)
-        )
-    )
-    GPR.io.waddr <> IDU.io.rd_addr
-    GPR.io.wdata := MuxCase(
-        EXU.io.alu_res,
-        Seq(
-            (io.Load === true.B) -> (io.data_sram_rdata),
-            (io.inst_code === isJALR) -> (io.pc + 4.U),
-            (io.inst_code === isJAL) -> (io.pc + 4.U)
-        )
-    )
-
-    io.inst <> IDU.io.inst
-    io.halt <> IDU.io.halt
-    io.rd  <> IDU.io.rd_addr
-    io.pc  <> IFU.io.pc
-    io.rs1 <> IDU.io.rs1_addr
-    io.rs2 <> IDU.io.rs2_addr
-    io.res <> EXU.io.alu_res
-    io.data1 <> IDU.io.op1_data
-    io.data2 <> IDU.io.op2_data
-    io.data_sram_wdata <> IDU.io.mem_data
+    //DEBUG
+    io.mepc     <> CSR.io.get_mepc
+    io.mtvec    <> CSR.io.get_mtvec
+    io.out1     <> EXU.io.alu_res
+    io.out2     <> IDU.io.csr_raddr
+    io.inst     <> IDU.io.in.bits.inst
+    io.halt     <> IDU.io.halt
+    io.rd       <> IDU.io.out.bits.rd_addr
+    io.pc       <> IFU.io.out.bits.pc
+    io.rs1      <> IDU.io.rs1_addr
+    io.rs2      <> IDU.io.rs2_addr
+    io.res      <> EXU.io.alu_res
+    io.data1    <> IDU.io.out.bits.data1
+    io.data2    <> IDU.io.out.bits.data2
+    io.data_sram_wdata <> EXU.io.mem_data
     io.data_sram_addr  <> EXU.io.waddr
-         
-
     io.Store  <> IDU.io.Store
     io.Load   <> IDU.io.Load
     io.SL_len <> IDU.io.SL_len
-    io.inst_code <> IDU.io.inst_code
+    io.inst_code <> EXU.io.inst_code
     io.br_taken  <> EXU.io.br_taken
     io.br_target := MuxCase(
-        IDU.io.br_target,
+        EXU.io.br_target,
         Seq(
-            (io.inst_code === isJALR)   -> (EXU.io.alu_res),
-            (io.inst_code === isJAL )   -> (EXU.io.alu_res),
-            (io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
-            (io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
+            (EXU.io.inst_code === isJALR)   -> (EXU.io.alu_res),
+            (EXU.io.inst_code === isJAL )   -> (EXU.io.alu_res),
+            (EXU.io.inst_code === isMRET  ) -> (CSR.io.get_mepc),
+            (EXU.io.inst_code === isECALL ) -> (CSR.io.get_mtvec)
         )
     )
 }

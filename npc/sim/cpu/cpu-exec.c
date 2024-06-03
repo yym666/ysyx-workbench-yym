@@ -22,11 +22,8 @@
 #include "VTOP___024root.h" 
 #include "VTOP.h"
 #include "disasm.h"
+#include <vcd.h>
 
-VerilatedContext *contextp = NULL;
-VerilatedVcdC *tfp = NULL;
-
-VTOP top;
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -48,10 +45,10 @@ void iringbuf_display();
 // void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
 
 static void single_cycle() {
-    top.clock = 0;
-    top.eval();
-    top.clock = 1;
-    top.eval();
+    top->clock = 0;
+    step_and_dump_wave();
+    top->clock = 1;
+    step_and_dump_wave();
 }
 void difftest_step(vaddr_t pc, vaddr_t npc);
 void difftest_skip_ref();
@@ -67,51 +64,52 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 
 void RegUpdate(){
   for (int i = 0; i < 32; ++i){
-    cpu.gpr[i] = top.rootp->TOP__DOT__GPR__DOT__regs_ext__DOT__Memory[i];
+    cpu.gpr[i] = top->rootp->TOP__DOT__GPR__DOT__regs_ext__DOT__Memory[i];
   }
-  cpu.pc =  top.io_pc;
+  cpu.pc =  top->io_pc;
 }
 
 void PrintaLog(){
-  Log("rs1: %d", top.io_rs1);
-  Log("rs2: %d", top.io_rs2);
-  Log("rd : %d",  top.io_rd);
-  Log("data1 : %08x",  top.io_data1);
-  Log("data2 : %08x",  top.io_data2);
-  Log("res: %08x", top.io_res);
-  Log("br_taken : %d", top.io_br_taken);
-  Log("br_target: %08x", top.io_br_target);
-  Log("inst_code: %d", top.io_inst_code);
-  Log("isStore: %s", top.io_Store ? "true" : "false");
-  Log("isLoad : %s", top.io_Load ? "true" : "false");
-  if (top.io_Store){
-    Log("wdata: %08x", top.io_data_sram_wdata);
-    Log("waddr: %08x", top.io_data_sram_addr);
+  Log("rs1: %d", top->io_rs1);
+  Log("rs2: %d", top->io_rs2);
+  Log("rd : %d",  top->io_rd);
+  Log("data1 : %08x",  top->io_data1);
+  Log("data2 : %08x",  top->io_data2);
+  Log("res: %08x", top->io_res);
+  Log("br_taken : %d", top->io_br_taken);
+  Log("br_target: %08x", top->io_br_target);
+  Log("inst_code: %d", top->io_inst_code);
+  Log("isStore: %s", top->io_Store ? "true" : "false");
+  Log("isLoad : %s", top->io_Load ? "true" : "false");
+  if (top->io_Store){
+    Log("wdata: %08x", top->io_data_sram_wdata);
+    Log("waddr: %08x", top->io_data_sram_addr);
   }
-// if (top.io_out2 == 2){
-//   Log("out1: %08x", top.io_out1);
-//   Log("out2: %d", top.io_out2);
+  Log("inst_req : %d", top->io_inst_req);
+// if (top->io_out2 == 2){
+//   Log("out1: %08x", top->io_out1);
+//   Log("out2: %d", top->io_out2);
 // }
   printf("\n");
 }
 
 void LoadStore(){
-   if (top.io_Store == true) {
-    vaddr_write(top.io_data_sram_addr, top.io_SL_len, top.io_data_sram_wdata);
+   if (top->io_Store == true) {
+    vaddr_write(top->io_data_sram_addr, top->io_SL_len, top->io_data_sram_wdata);
   }
-  if (top.io_Load  == true) {
-    assert(top.io_inst_code >= 24);
-    assert(top.io_inst_code <= 29);
-    if (top.io_inst_code <= 26){
-      if (top.io_inst_code == 24)
-        top.io_data_sram_rdata = SEXT(vaddr_read(top.io_data_sram_addr, top.io_SL_len), 8);
-      else if (top.io_inst_code == 25)
-        top.io_data_sram_rdata = SEXT(vaddr_read(top.io_data_sram_addr, top.io_SL_len), 16);
-      else if (top.io_inst_code == 26)
-        top.io_data_sram_rdata = SEXT(vaddr_read(top.io_data_sram_addr, top.io_SL_len), 32);
+  if (top->io_Load  == true) {
+    assert(top->io_inst_code >= 24);
+    assert(top->io_inst_code <= 29);
+    if (top->io_inst_code <= 26){
+      if (top->io_inst_code == 24)
+        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 8);
+      else if (top->io_inst_code == 25)
+        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 16);
+      else if (top->io_inst_code == 26)
+        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 32);
     }
-    else if (top.io_inst_code >= 27)
-      top.io_data_sram_rdata = vaddr_read(top.io_data_sram_addr, top.io_SL_len);
+    else if (top->io_inst_code >= 27)
+      top->io_data_sram_rdata = vaddr_read(top->io_data_sram_addr, top->io_SL_len);
   }
 }
 
@@ -135,12 +133,20 @@ void ftrace_jalr(Decode *s, word_t rd){
   #endif
 }
 
+int getinst = 0;
+
 static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc, s->snpc = pc;
-  top.io_inst = vaddr_read(pc, 4);
+  bool first_skip = false;
+  getinst *= 2;
+  if (top->io_inst_req == 1) getinst = 1;
 
-  top.eval();
-  s->isa.inst.val = top.io_inst;
+  // printf("get = %d\n", getinst);
+  if (pc == 0x7ffffffc);//first_skip = true;
+  else if (getinst == 2) 
+    getinst = 0, top->io_inst = vaddr_read(pc, 4);
+  // if (pc == 0x80000000) first_skip = true;
+  s->isa.inst.val = top->io_inst;
 #ifdef PRINT_LOG
   Log("%x %08x", s->pc, s->isa.inst.val);
 #endif
@@ -148,14 +154,13 @@ static void exec_once(Decode *s, vaddr_t pc) {
   void iringbuf_update(word_t pc, uint32_t inst);
   iringbuf_update(s->pc, s->isa.inst.val);
 #endif
-  s->dnpc = top.io_br_target;
-  if (top.io_inst_code == isJAL) ftrace_jal(s, top.io_rd);
-  if (top.io_inst_code == isJALR) ftrace_jalr(s, top.io_rd);
-  top.eval();
-// if (top.io_out2 == 3){
-//   Log("pc: %08x", top.io_pc);
-//   Log("out1: %08x", top.io_out1);
-//   Log("out2: %d", top.io_out2);
+  s->dnpc = top->io_br_target;
+  if (top->io_inst_code == isJAL) ftrace_jal(s, top->io_rd);
+  if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
+// if (top->io_out2 == 3){
+//   Log("pc: %08x", top->io_pc);
+//   Log("out1: %08x", top->io_out1);
+//   Log("out2: %d", top->io_out2);
 //   PrintaLog();
 // }
 #ifdef PRINT_LOG
@@ -163,17 +168,17 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #endif
   LoadStore(); 
 
-  halt = top.io_halt;
+  halt = top->io_halt;
   if (halt) NPCTRAP(s->pc, 0);
 
   single_cycle();
 #ifdef CONFIG_DIFFTEST
   RegUpdate();
-  // if (top.io_Store == true && top.io_data_sram_addr == 0xa00003f8)
-  //   difftest_skip_ref();
-  // if (top.io_Load  == true && (top.io_data_sram_addr == 0xa0000048 || top.io_data_sram_addr == 0xa000004c))
-  //   difftest_skip_ref();
-  trace_and_difftest(s, top.io_pc);
+  if (!first_skip && inst_req == 2) {
+    inst_req = 0;
+    printf("EX\n\n");
+    trace_and_difftest(s, top->io_pc);
+  }
 #endif
 
 #ifdef CONFIG_ITRACE
@@ -205,7 +210,9 @@ static void exec_once(Decode *s, vaddr_t pc) {
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
-    exec_once(&s, top.io_pc);
+    // exec_once(&s, top->io_pc);
+    exec_once(&s, top->rootp->TOP__DOT__IFU__DOT__pc_reg);
+    
     if (halt) return;
     g_nr_guest_inst ++;
     //cause strange output
@@ -230,6 +237,7 @@ void assert_fail_msg() {
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+
   g_print_step = (n < MAX_INST_TO_PRINT);
   switch (npc_state.state) {
     case NPC_END: case NPC_ABORT:

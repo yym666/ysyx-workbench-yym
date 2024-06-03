@@ -119,7 +119,6 @@ object InstPat {
     val LEN_REG = 3
     val REG_ERR = 0.U(LEN_REG.W)
     val REG_WT  = 1.U(LEN_REG.W)
-    val REG_RD  = 2.U(LEN_REG.W)
 
     val LEN_CSR = 3
     val CSR_ERR = 0.U(LEN_CSR.W)

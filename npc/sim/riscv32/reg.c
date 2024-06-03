@@ -26,11 +26,10 @@ const char *regs[] = {
 int checkregs(CPU_state *ref_r, vaddr_t pc) {
   for (int i = 0; i < 32; ++i){
     if (ref_r->gpr[i] != gpr(i)){
-      // printf("i :: %d\n", i);
       return false;
     }
   }
-  if (ref_r->pc != cpu.pc)
+  if (ref_r->pc != pc)
     return false;
   return true;
 }
@@ -42,7 +41,7 @@ void diff_print_regs(CPU_state *ref_r, vaddr_t pc) {
     if (cpu.gpr[i] == ref_r->gpr[i]) printf("\n");
     else printf(" ** \n");
   }
-  printf("%6s     0x%08x 0x%08x\n", "pc", cpu.pc, pc);
+  printf("%6s     0x%08x 0x%08x\n", "pc", cpu.pc, ref_r->pc);
 }
 
 void isa_reg_display() {
