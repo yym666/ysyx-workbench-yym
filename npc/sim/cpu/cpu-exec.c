@@ -70,27 +70,23 @@ void RegUpdate(){
 }
 
 void PrintaLog(){
-  Log("rs1: %d", top->io_rs1);
-  Log("rs2: %d", top->io_rs2);
-  Log("rd : %d",  top->io_rd);
-  Log("data1 : %08x",  top->io_data1);
-  Log("data2 : %08x",  top->io_data2);
-  Log("res: %08x", top->io_res);
-  Log("br_taken : %d", top->io_br_taken);
-  Log("br_target: %08x", top->io_br_target);
-  Log("inst_code: %d", top->io_inst_code);
-  Log("isStore: %s", top->io_Store ? "true" : "false");
-  Log("isLoad : %s", top->io_Load ? "true" : "false");
-  if (top->io_Store){
-    Log("wdata: %08x", top->io_data_sram_wdata);
-    Log("waddr: %08x", top->io_data_sram_addr);
-  }
-  Log("inst_req : %d", top->io_inst_req);
-// if (top->io_out2 == 2){
-//   Log("out1: %08x", top->io_out1);
-//   Log("out2: %d", top->io_out2);
-// }
-  printf("\n");
+  // Log("rs1: %d", top->io_rs1);
+  // Log("rs2: %d", top->io_rs2);
+  // Log("rd : %d",  top->io_rd);
+  // Log("data1 : %08x",  top->io_data1);
+  // Log("data2 : %08x",  top->io_data2);
+  // Log("res: %08x", top->io_res);
+  // Log("br_taken : %d", top->io_br_taken);
+  // Log("br_target: %08x", top->io_br_target);
+  // Log("inst_code: %d", top->io_inst_code);
+  // Log("isStore: %s", top->io_Store ? "true" : "false");
+  // Log("isLoad : %s", top->io_Load ? "true" : "false");
+  // if (top->io_Store){
+  //   Log("wdata: %08x", top->io_data_sram_wdata);
+  //   Log("waddr: %08x", top->io_data_sram_addr);
+  // }
+  // Log("inst_req : %d", top->io_inst_req);
+  // printf("\n");
 }
 
 void LoadStore(){
@@ -154,15 +150,9 @@ static void exec_once(Decode *s, vaddr_t pc) {
   void iringbuf_update(word_t pc, uint32_t inst);
   iringbuf_update(s->pc, s->isa.inst.val);
 #endif
-  s->dnpc = top->io_br_target;
-  if (top->io_inst_code == isJAL) ftrace_jal(s, top->io_rd);
-  if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
-// if (top->io_out2 == 3){
-//   Log("pc: %08x", top->io_pc);
-//   Log("out1: %08x", top->io_out1);
-//   Log("out2: %d", top->io_out2);
-//   PrintaLog();
-// }
+  // s->dnpc = top->io_br_target;
+  // if (top->io_inst_code == isJAL) ftrace_jal(s, top->io_rd);
+  // if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
 #ifdef PRINT_LOG
   PrintaLog();
 #endif

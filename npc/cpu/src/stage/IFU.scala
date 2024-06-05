@@ -11,10 +11,12 @@ class IFU extends Module {
     val io = IO(new Bundle {
         val out =   Decoupled(new MessageIF2ID)
         val br_taken    =  Input(Bool())
-        val idu_done    =  Input(Bool())
         val br_target   =  Input(UInt(ADDR_WIDTH.W))
         val inst        =  Input(UInt(DATA_WIDTH.W))
         val inst_req    = Output(Bool())
+        val idu_done    =  Input(Bool())
+        val exu_done    =  Input(Bool())
+        val lsu_done    =  Input(Bool())
     })
 
     val idle :: wait_ready :: Nil = Enum(2)
@@ -25,7 +27,10 @@ class IFU extends Module {
     ))
 
     val if_valid = RegInit(false.B)
-    val inst_req = (io.idu_done === true.B && if_valid === false.B)
+    val inst_req = (io.idu_done === true.B && 
+                    io.exu_done === true.B && 
+                    io.lsu_done === true.B && 
+                    if_valid === false.B)
     io.out.valid := if_valid
 
     val pc_reg = RegInit(UInt(ADDR_WIDTH.W), START_ADDR.U)

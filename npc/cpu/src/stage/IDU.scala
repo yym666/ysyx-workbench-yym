@@ -19,20 +19,20 @@ class IDU extends Module {
         val rs2_addr    = Output(UInt(REG_WIDTH.W))
 
         //for csr
-        val csr_wen     = Output(Bool())
-        val csr_rdata    =  Input(UInt(DATA_WIDTH.W))
-        val csr_raddr    = Output(UInt(CSR_WIDTH.W))
+        val csr_rdata   =  Input(UInt(DATA_WIDTH.W))
+        val csr_raddr   = Output(UInt(CSR_WIDTH.W))
         val set_mcause  = Output(Bool())
         val set_mepc    = Output(Bool())
         val set_mcause_val  = Output(UInt(DATA_WIDTH.W))
         val set_mepc_val    = Output(UInt(DATA_WIDTH.W))
         
+        val get_mepc    =  Input(UInt(DATA_WIDTH.W))
+        val get_mtvec   =  Input(UInt(DATA_WIDTH.W))
+        
+        val br_taken    = Output(Bool())
+        val br_target   = Output(UInt(ADDR_WIDTH.W))
         val halt        = Output(Bool())
 
-//      Load & Store
-        val Store   = Output(Bool())
-        val Load    = Output(Bool())
-        val SL_len  = Output(UInt(5.W))
         val idu_done    = Output(Bool())
     })
 
@@ -46,16 +46,8 @@ class IDU extends Module {
     io.in.ready  := Mux(IDUstate === wait_id2ex, 0.U, 1.U)
     
     io.idu_done := (IDUstate === wait_if2id)
-    // io.out.bits.pc      := io.in.bits.pc
-    // io.out.bits.inst    := io.in.bits.inst
-    // when (state === wait_if2id) {
-    //     io.out.valid := 0.U
-    //     io.in.ready  := 1.U
-    // }
-    // when (state === wait_id2ex) {
-    //     io.in.ready  := 0.U 
-    //     io.out.valid := 1.U     
-    // }
+    io.out.bits.pc      := io.in.bits.pc
+    io.out.bits.inst    := io.in.bits.inst
 
     io.rs1_addr := io.in.bits.inst(19, 15)
     io.rs2_addr := io.in.bits.inst(24, 20)
@@ -124,10 +116,6 @@ class IDU extends Module {
             BGE     -> List(BRC_BGE, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isBGE),
             BGEU    -> List(BRC_BGEU, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isBGEU),
 
-//   INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , C, if(rd != 0) {R(rd) = CSR(imm);} CSR(imm) = src1 );
-//   INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , C, R(rd) = CSR(imm); if(rs1forcsr != 0) {CSR(imm) |= src1;} );
-//   INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, ECALL(s->dnpc));
-//   INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , N, MRET());
             CSRRW   -> List(ALU_CSRW, OP1_RS1, OP2_ERR, MEM_ERR, LSL_0, REG_WT, CSR_WT, isCSRRW),
             CSRRS   -> List(ALU_CSRS, OP1_RS1, OP2_ERR, MEM_ERR, LSL_0, REG_WT, CSR_WT, isCSRRS),
             ECALL   -> List(FORCE_JUMP, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ECA, isECALL),
@@ -156,6 +144,29 @@ class IDU extends Module {
         )
     )
 
+    io.br_taken := MuxCase(
+        false.B,
+        Seq(
+            (excode_tmp === BRC_BEQ)  -> (io.out.bits.data1 === io.out.bits.data2),
+            (excode_tmp === BRC_BNE)  -> (io.out.bits.data1 =/= io.out.bits.data2),
+            (excode_tmp === BRC_BLT)  -> (io.out.bits.data1.asSInt <  io.out.bits.data2.asSInt),
+            (excode_tmp === BRC_BLTU) -> (io.out.bits.data1 <  io.out.bits.data2),
+            (excode_tmp === BRC_BGE)  -> (io.out.bits.data1.asSInt >= io.out.bits.data2.asSInt),
+            (excode_tmp === BRC_BGEU) -> (io.out.bits.data1 >= io.out.bits.data2),
+            (excode_tmp === ALU_JALR) -> (true.B),
+            (excode_tmp === ALU_JAL)  -> (true.B),
+            (excode_tmp === FORCE_JUMP) -> (true.B)
+        )
+    )
+    io.br_target:= MuxCase(
+        io.in.bits.pc + imm_b_sext,
+        Seq(
+            (excode_tmp === ALU_JALR)   -> ((io.out.bits.data1 + io.out.bits.data2) & ~1.U(DATA_WIDTH.W)),
+            (excode_tmp === ALU_JAL )   -> (io.out.bits.data1 + io.out.bits.data2),
+            (inst_code_tmp === isMRET ) -> (io.get_mepc),
+            (inst_code_tmp === isECALL) -> (io.get_mtvec)
+        )
+    )
 //   case 0x300: return &(cpu.csr.mstatus);
 //   case 0x305: return &(cpu.csr.mtvec);
 //   case 0x341: return &(cpu.csr.mepc);
@@ -169,17 +180,16 @@ class IDU extends Module {
             (imm_i === 0x342.U) -> 4.U
         )
     )
+    io.out.bits.csr_waddr := io.csr_raddr
+
     io.set_mcause       := MuxCase(false.B, Seq((csr_opt === CSR_ECA) -> true.B))
     io.set_mcause_val   := MuxCase(0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> 11.U))
     io.set_mepc         := MuxCase(false.B, Seq((csr_opt === CSR_ECA) -> true.B))
     io.set_mepc_val     := MuxCase(0.U(DATA_WIDTH.W), Seq((csr_opt === CSR_ECA) -> (io.in.bits.pc + 4.U(DATA_WIDTH.W))))
-    io.csr_wen          := MuxCase(false.B, Seq((csr_opt === CSR_WT) -> (true.B)))
+    io.out.bits.csr_wen  := MuxCase(false.B, Seq((csr_opt === CSR_WT) -> (true.B)))
     io.out.bits.csr_data := io.csr_rdata
-
-    io.Store := Mux(mem_wen === MEM_ST && IDUstate === wait_id2ex, true.B, false.B)
-    io.Load  := Mux(mem_wen === MEM_LD && IDUstate === wait_id2ex, true.B, false.B)
-    io.SL_len := wb_len
-    
+   
+    io.out.bits.mem_len  := wb_len 
     io.out.bits.mem_opt  := mem_wen
     io.out.bits.reg_wen  := (reg_wen === REG_WT)
     io.out.bits.mem_data := MuxCase(
@@ -192,6 +202,5 @@ class IDU extends Module {
     )
     io.out.bits.excode   := excode_tmp
     io.out.bits.inst_code:= inst_code_tmp
-    io.out.bits.br_target:= io.in.bits.pc + imm_b_sext
-    io.halt             := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
+    io.halt := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
 }
