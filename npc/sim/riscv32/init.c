@@ -15,7 +15,10 @@
 
 #include <isa.h>
 #include <memory/paddr.h>
+#include "VTOP___024root.h" 
+#include "VTOP.h"
 #include <vcd.h>
+
 
 // this is not consistent with uint8_t
 // but it is ok since we do not access the array directly
@@ -45,6 +48,7 @@ static void restart() {
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
   cpu.csr.mstatus = 0x00001800;
+  top->rootp->TOP__DOT__CSR__DOT__csrs_ext__DOT__Memory[1] = 0x00001800;
 //gpr = general purpose register
 }
 

@@ -12,6 +12,7 @@ class IDU extends Module {
         val in  = Flipped(Decoupled(new MessageIF2ID))
         val out =         Decoupled(new MessageID2EX)
 
+        val inst        =  Input(UInt(ADDR_WIDTH.W))
         //from gpr
         val rs1_data    =  Input(UInt(DATA_WIDTH.W))
         val rs2_data    =  Input(UInt(DATA_WIDTH.W))
@@ -49,25 +50,25 @@ class IDU extends Module {
     
     io.idu_done := (IDUstate === wait_if2id)
     io.out.bits.pc      := io.in.bits.pc
-    io.out.bits.inst    := io.in.bits.inst
+    io.out.bits.inst    := io.inst
 
-    io.rs1_addr := io.in.bits.inst(19, 15)
-    io.rs2_addr := io.in.bits.inst(24, 20)
-    io.out.bits.rd_addr := io.in.bits.inst(11,  7)
+    io.rs1_addr := io.inst(19, 15)
+    io.rs2_addr := io.inst(24, 20)
+    io.out.bits.rd_addr := io.inst(11,  7)
 
-    val imm_i       = io.in.bits.inst(31, 20)
+    val imm_i       = io.inst(31, 20)
     val imm_i_sext  = Cat(Fill(20, imm_i(11)), imm_i)
-    val imm_u       = io.in.bits.inst(31, 12)
+    val imm_u       = io.inst(31, 12)
     val imm_u_shif  = Cat(imm_u, Fill(12, 0.U))
-    val imm_s       = Cat(io.in.bits.inst(31, 25), io.in.bits.inst(11, 7))
+    val imm_s       = Cat(io.inst(31, 25), io.inst(11, 7))
     val imm_s_sext  = Cat(Fill(20, imm_s(11)), imm_s)
-    val imm_b       = Cat(io.in.bits.inst(31), io.in.bits.inst(7), io.in.bits.inst(30, 25), io.in.bits.inst(11, 8))
+    val imm_b       = Cat(io.inst(31), io.inst(7), io.inst(30, 25), io.inst(11, 8))
     val imm_b_sext  = Cat(Fill(19, imm_b(11)), imm_b, 0.U(1.W))
-    val imm_j       = Cat(io.in.bits.inst(31), io.in.bits.inst(19, 12), io.in.bits.inst(20), io.in.bits.inst(30, 21))
+    val imm_j       = Cat(io.inst(31), io.inst(19, 12), io.inst(20), io.inst(30, 21))
     val imm_j_sext  = Cat(Fill(11, imm_j(19)), imm_j, 0.U(1.W))
 
     val decode = ListLookup(
-        io.in.bits.inst,
+        io.inst,
         List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isADDI),
         Array(
             EBREAK  -> List(ALU_ERR, OP1_ERR, OP2_ERR, MEM_ERR, LSL_0, REG_ERR, CSR_ERR, isEBREAK),
@@ -81,6 +82,7 @@ class IDU extends Module {
             XOR     -> List(ALU_XOR, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , CSR_ERR, isXOR),
             MUL     -> List(ALU_MUL, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , CSR_ERR, isMUL),
             MULH    -> List(ALU_MULH, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT, CSR_ERR, isMULH),
+            MULHU   -> List(ALU_MULHU,OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT, CSR_ERR, isMULHU),
             SRA     -> List(ALU_SRA, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , CSR_ERR, isSRA),
             SRL     -> List(ALU_SRL, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , CSR_ERR, isSRL),
             SLL     -> List(ALU_SLL, OP1_RS1, OP2_RS2, MEM_ERR, LSL_0, REG_WT , CSR_ERR, isSLL),

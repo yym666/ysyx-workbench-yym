@@ -12,7 +12,8 @@ class IFU extends Module {
         val out =   Decoupled(new MessageIF2ID)
         val br_taken    =  Input(Bool())
         val br_target   =  Input(UInt(ADDR_WIDTH.W))
-        val inst        =  Input(UInt(DATA_WIDTH.W))
+        // val inst        =  Input(UInt(DATA_WIDTH.W))
+        val ime_valid   = Output(Bool())
         val inst_req    = Output(Bool())
         val idu_done    =  Input(Bool())
         val exu_done    =  Input(Bool())
@@ -33,6 +34,8 @@ class IFU extends Module {
                     if_valid === false.B)
     io.out.valid := if_valid
 
+    io.ime_valid := if_valid
+
     val pc_reg = RegInit(UInt(ADDR_WIDTH.W), START_ADDR.U)
     val pc_nxt = Mux((io.br_taken === true.B), io.br_target, pc_reg + 4.U)
     
@@ -44,6 +47,5 @@ class IFU extends Module {
         if_valid := false.B
     }
     io.out.bits.pc   := pc_reg
-    io.out.bits.inst := io.inst
     io.inst_req      := inst_req
 }

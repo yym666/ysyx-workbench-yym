@@ -8,7 +8,6 @@ import config.InstPat._
 
 class MessageIF2ID extends Bundle {
     val pc          = Output(UInt(ADDR_WIDTH.W))
-    val inst        = Output(UInt(DATA_WIDTH.W))
 }
 
 class MessageID2EX extends Bundle {

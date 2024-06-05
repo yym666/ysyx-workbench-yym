@@ -83,19 +83,20 @@ void RegUpdate(){
 
 void PrintaLog(){
    if (top->io_inst_req) Log("");
-  Log("mepc  : %x",    top->io_mepc);
+  Log("mstat : %x",    top->io_mstatus);
   Log("data1 : %08x",  top->io_data1);
   Log("data2 : %08x",  top->io_data2);
   Log("id-ins: %08x",  top->io_id_inst);
   Log("ls-rdt: %08x",  top->io_ls_rdata);
   Log("wb-wdt: %08x",  top->io_wb_wdata);
-  // Log("rs1: %d", top->io_rs1);
-  // Log("rs2: %d", top->io_rs2);
-  // Log("rd : %d",  top->io_rd);
+  Log("rs1: %d", top->io_rs1);
+  Log("rs2: %d", top->io_rs2);
+  Log("rd : %d",  top->io_rd);
   // Log("data1 : %08x",  top->io_data1);
   // Log("data2 : %08x",  top->io_data2);
   // Log("res: %08x", top->io_res);
   Log("mem_valid: %d", top->io_mem_valid);
+  Log("idu_mem_opt: %d", top->io_ldu_mem_opt);
   Log("br_taken : %d", top->io_br_taken);
   Log("br_target: %08x", top->io_br_target);
   // Log("inst_code: %d", top->io_inst_code);
@@ -161,7 +162,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
   if (pc == 0x7ffffffc);//first_skip = true;
   else if (getinst == 2) {
     // getinst = 0, 
-    top->io_inst = vaddr_read(pc, 4);
+    // top->io_inst = vaddr_read(pc, 4);
   }
   if (pc == 0x80000000) first_skip = true;
   else first_skip = false;
