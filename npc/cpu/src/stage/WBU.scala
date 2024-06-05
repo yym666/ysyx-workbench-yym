@@ -21,6 +21,8 @@ class WBU extends Module {
 
         //debug
         val alu_res     = Output(UInt(DATA_WIDTH.W))
+        val br_taken    = Output(Bool())
+        val br_target   = Output(UInt(ADDR_WIDTH.W))
     })
     
     io.in.ready := 1.U
@@ -47,4 +49,6 @@ class WBU extends Module {
 
     //debug
     io.alu_res := io.in.bits.alu_res
+    io.br_taken  := io.in.bits.br_taken
+    io.br_target := io.in.bits.br_target
 }

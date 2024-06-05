@@ -69,14 +69,17 @@ DIRC += $(NPC_HOME)/sim             \
         $(NPC_HOME)/sim/device/io   \
         $(NPC_HOME)/sim/utils		\
 		$(NPC_HOME)/sim/engine      \
-		$(NPC_HOME)/sim/engine/interpreter
+		$(NPC_HOME)/sim/engine/interpreter \
+		$(NPC_HOME)/cpu/resources
 SRCC  = $(shell find $(DIRC) -name "*.c") \
-		$(NPC_HOME)/sim/utils/disasm.cpp
+		$(NPC_HOME)/sim/utils/disasm.cpp \
+		$(NPC_HOME)/sim/dpic.cpp
 
 $(SRCV_GEN): $(SRCS)
 	$(call git_commit, "generate verilog")
 	mkdir -p $(BUILD_DIR)                           
 	mill -i __.test.runMain Elaborate --target-dir $(BUILD_DIR)
+	@sed -i '/\/\/ ----- 8< ----- FILE "firrtl_black_box_resource_files.f" ----- 8< -----/,$$d' $@
 
 # NPC_BIN_NAME = $(GUEST_ISA)-npc-$(ENGINE)
 NPC_BIN      = $(BUILD_DIR)/$(NPC_NAME)

@@ -20,12 +20,15 @@ class MessageID2EX extends Bundle {
     val rd_addr = Output(UInt(REG_WIDTH.W))
     val reg_wen = Output(Bool())
     val mem_opt = Output(UInt(LEN_MEM.W))
-    val mem_len = Output(UInt(5.W))
+    val mem_msk = Output(UInt(8.W))
     val mem_data    = Output(UInt(DATA_WIDTH.W))
     val csr_wen     = Output(Bool())
     val csr_waddr   = Output(UInt(CSR_WIDTH.W))
     val csr_data    = Output(UInt(DATA_WIDTH.W))
     val inst_code   = Output(UInt(INS_LEN.W))
+
+    val br_taken    = Output(Bool())
+    val br_target   = Output(UInt(DATA_WIDTH.W))   
 }
 
 class MessageEX2LS extends Bundle {
@@ -38,9 +41,12 @@ class MessageEX2LS extends Bundle {
     val csr_wen     = Output(Bool())
     val csr_waddr   = Output(UInt(CSR_WIDTH.W))
     val mem_opt     = Output(UInt(LEN_REG.W))
-    val mem_len     = Output(UInt(5.W))
+    val mem_msk     = Output(UInt(8.W))
     val mem_wdata   = Output(UInt(DATA_WIDTH.W))
     val mem_addr    = Output(UInt(ADDR_WIDTH.W))
+
+    val br_taken    = Output(Bool())
+    val br_target   = Output(UInt(DATA_WIDTH.W))
 }
 
 class MessageLS2WB extends Bundle {
@@ -54,4 +60,7 @@ class MessageLS2WB extends Bundle {
     val csr_waddr   = Output(UInt(CSR_WIDTH.W))
     val mem_opt     = Output(UInt(LEN_REG.W))
     val mem_rdata   = Output(UInt(DATA_WIDTH.W))
+
+    val br_taken    = Output(Bool())
+    val br_target   = Output(UInt(DATA_WIDTH.W))
 }

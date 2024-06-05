@@ -4,6 +4,7 @@ import chisel3.util._
 import config.MyConfig._
 import config.InstPat._
 import unit._
+import blackbox._
 
 import _root_.stage.IFU
 import _root_.stage.IDU
@@ -19,26 +20,31 @@ class TOP extends Module {
         val pc      = Output(UInt(ADDR_WIDTH.W))
         // val rs1     = Output(UInt(REG_WIDTH.W))
         // val rs2     = Output(UInt(REG_WIDTH.W))
-        // val data1   = Output(UInt(DATA_WIDTH.W))
-        // val data2   = Output(UInt(DATA_WIDTH.W))
+        val data1   = Output(UInt(DATA_WIDTH.W))
+        val data2   = Output(UInt(DATA_WIDTH.W))
         // val rd      = Output(UInt(REG_WIDTH.W))
         // val res     = Output(UInt(DATA_WIDTH.W))
-        val halt    = Output(UInt(1.W))
+        // val halt    = Output(UInt(1.W))
 
-        val Store   = Output(Bool())
-        val Load    = Output(Bool())
-        val SL_len  = Output(UInt(5.W))
-        val inst_code   = Output(UInt(INS_LEN.W))
+        // val Store   = Output(Bool())
+        // val Load    = Output(Bool())
+        // val SL_len  = Output(UInt(5.W))
+        // val inst_code   = Output(UInt(INS_LEN.W))
 
-        // val br_taken    = Output(Bool())
-        // val br_target   = Output(UInt(ADDR_WIDTH.W))
+        val br_taken    = Output(Bool())
+        val br_target   = Output(UInt(ADDR_WIDTH.W))
+        val id_inst     = Output(UInt(DATA_WIDTH.W))
+        val ls_rdata    = Output(UInt(DATA_WIDTH.W))
+        val wb_wdata    = Output(UInt(DATA_WIDTH.W))
+        val mem_valid   = Output(Bool())
+
         
         //data sram interface
-        val data_sram_en    = Output(Bool())
-        val data_sram_addr  = Output(UInt(ADDR_WIDTH.W))
-        val data_sram_wdata = Output(UInt(DATA_WIDTH.W))
-        val data_sram_rdata =  Input(UInt(DATA_WIDTH.W))
-        // val mepc     = Output(UInt(DATA_WIDTH.W))
+        // val data_sram_en    = Output(Bool())
+        // val data_sram_addr  = Output(UInt(ADDR_WIDTH.W))
+        // val data_sram_wdata = Output(UInt(DATA_WIDTH.W))
+        // val data_sram_rdata =  Input(UInt(DATA_WIDTH.W))
+        val mepc     = Output(UInt(DATA_WIDTH.W))
         // val mtvec     = Output(UInt(DATA_WIDTH.W))
     })
 
@@ -50,6 +56,9 @@ class TOP extends Module {
     val GPR = Module(new GPR())
     val CSR = Module(new CSR())
 
+    val TRP = Module(new TRP())
+    val MEM = Module(new MEM())
+
     //IFU get inst from TOP
     IFU.io.inst     <> io.inst
     IFU.io.inst_req <> io.inst_req
@@ -59,13 +68,31 @@ class TOP extends Module {
     EXU.io.out <> LSU.io.in
     LSU.io.out <> WBU.io.in
 
+    //TRP
+    TRP.io.clock := clock
+    TRP.io.reset := reset
+    TRP.io.halt := IDU.io.halt
+
+    //mem
+    MEM.io.clock := clock
+    MEM.io.reset := reset
+    MEM.io.valid := LSU.io.isST || LSU.io.isLD
+    MEM.io.wen   := LSU.io.isST && MEM.io.valid
+
+    MEM.io.waddr  <> LSU.io.addr
+    MEM.io.raddr  <> LSU.io.addr
+    MEM.io.wdata  <> LSU.io.wdata
+    MEM.io.wmask  <> LSU.io.wmask
+    LSU.io.rdata  <> MEM.io.rdata
+
+    // io.inst_code        <> LSU.io.inst_code
 
     IFU.io.idu_done  <> IDU.io.idu_done
     IFU.io.exu_done  <> EXU.io.exu_done
     IFU.io.lsu_done  <> LSU.io.lsu_done
     //EXU <> IFU
-    IFU.io.br_taken  <> IDU.io.br_taken
-    IFU.io.br_target <> IDU.io.br_target
+    IFU.io.br_taken  <> WBU.io.br_taken
+    IFU.io.br_target <> WBU.io.br_target
 
     //WBU <> CSR & GPR
     CSR.io.wen      <> WBU.io.csr_we
@@ -92,19 +119,17 @@ class TOP extends Module {
     CSR.io.get_mtvec      <> IDU.io.get_mtvec
 
     //data_sram
-    io.data_sram_wdata  <> LSU.io.wdata
-    io.data_sram_addr   <> LSU.io.addr
-    io.data_sram_en     <> LSU.io.isST
-    io.inst_code        <> LSU.io.inst_code
-    LSU.io.rdata        <> io.data_sram_rdata
-    io.Store    := LSU.io.isST
-    io.Load     := LSU.io.isLD
-    io.SL_len   <>  LSU.io.mem_len
+    // io.data_sram_wdata  <> LSU.io.wdata
+    // io.data_sram_addr   <> LSU.io.addr
+    // io.data_sram_en     <> LSU.io.isST
+    // io.inst_code        <> LSU.io.inst_code
+    // LSU.io.rdata        <> io.data_sram_rdata
 
 
     io.inst     <> IDU.io.in.bits.inst
     io.pc       <> IFU.io.out.bits.pc
-    io.halt     <> IDU.io.halt
+    // io.halt     <> IDU.io.halt
+
     //DEBUG
     // io.mepc     <> CSR.io.get_mepc
     // io.mtvec    <> CSR.io.get_mtvec
@@ -112,6 +137,13 @@ class TOP extends Module {
     // io.rs1      <> IDU.io.rs1_addr
     // io.rs2      <> IDU.io.rs2_addr
     // io.res      <> WBU.io.alu_res
-    // io.data1    <> IDU.io.out.bits.data1
-    // io.data2    <> IDU.io.out.bits.data2
+    io.data1    <> IDU.io.out.bits.data1
+    io.data2    <> IDU.io.out.bits.data2
+    io.br_taken     <> WBU.io.br_taken 
+    io.br_target    <> WBU.io.br_target 
+    io.mepc         <> CSR.io.get_mepc
+    io.id_inst      <> IDU.io.out.bits.inst
+    io.ls_rdata     <> MEM.io.rdata
+    io.wb_wdata     <> WBU.io.reg_wdata
+    io.mem_valid    := LSU.io.isST || LSU.io.isLD
 }

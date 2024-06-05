@@ -110,11 +110,14 @@ object InstPat {
     val MEM_ST  = 1.U(LEN_MEM.W)
     val MEM_LD  = 2.U(LEN_MEM.W)
 
-    val LEN_LSL = 4
+    val LEN_LSL = 8
     val LSL_0   = 0.U(LEN_LSL.W)
     val LSL_1   = 1.U(LEN_LSL.W)
-    val LSL_2   = 2.U(LEN_LSL.W)
-    val LSL_4   = 4.U(LEN_LSL.W)
+    val LSL_2   = 3.U(LEN_LSL.W)
+    val LSL_4   = 15.U(LEN_LSL.W)
+    val LSL_1U  = 2.U(LEN_LSL.W)
+    val LSL_2U  = 4.U(LEN_LSL.W)
+    val LSL_4U  = 16.U(LEN_LSL.W)
 
     val LEN_REG = 3
     val REG_ERR = 0.U(LEN_REG.W)

@@ -4,6 +4,8 @@
 #include <cpu/cpu.h>
 #include <isa.h>
 
+bool is_skip_ref = false;
+
 #ifdef DIFFTEST_ON
 
 bool checkregs(CPU_state *ref_r, vaddr_t pc);
@@ -23,7 +25,6 @@ void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
-static bool is_skip_ref = false;
 static int skip_dut_nr_inst = 0;
 
 // this is used to let ref skip instructions which

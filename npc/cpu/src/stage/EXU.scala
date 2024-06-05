@@ -30,11 +30,14 @@ class EXU extends Module {
     io.out.bits.rd_addr := io.in.bits.rd_addr
     io.out.bits.reg_wen := io.in.bits.reg_wen
     io.out.bits.csr_wen := io.in.bits.csr_wen
-    io.out.bits.mem_len := io.in.bits.mem_len
+    io.out.bits.mem_msk := io.in.bits.mem_msk
     io.out.bits.mem_opt := io.in.bits.mem_opt
     io.out.bits.mem_wdata   := io.in.bits.mem_data
     io.out.bits.inst_code   := io.in.bits.inst_code
     io.out.bits.csr_waddr   := io.in.bits.csr_waddr
+
+    io.out.bits.br_taken  := io.in.bits.br_taken
+    io.out.bits.br_target := io.in.bits.br_target
 
     io.out.bits.alu_res  := MuxCase(
         0.U(DATA_WIDTH.W),

@@ -28,9 +28,11 @@ class IDU extends Module {
         
         val get_mepc    =  Input(UInt(DATA_WIDTH.W))
         val get_mtvec   =  Input(UInt(DATA_WIDTH.W))
+        // val data1    = Output(UInt(DATA_WIDTH.W))
+        // val data2    = Output(UInt(DATA_WIDTH.W))
         
-        val br_taken    = Output(Bool())
-        val br_target   = Output(UInt(ADDR_WIDTH.W))
+        // val br_taken    = Output(Bool())
+        // val br_target   = Output(UInt(ADDR_WIDTH.W))
         val halt        = Output(Bool())
 
         val idu_done    = Output(Bool())
@@ -101,9 +103,9 @@ class IDU extends Module {
             LB      -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_1, REG_WT, CSR_ERR,  isLB),
             LH      -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_2, REG_WT, CSR_ERR,  isLH),
             LW      -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_4, REG_WT, CSR_ERR,  isLW),
-            LBU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_1, REG_WT, CSR_ERR,  isLBU),
-            LHU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_2, REG_WT, CSR_ERR,  isLHU),
-            LWU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_4, REG_WT, CSR_ERR,  isLWU),
+            LBU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_1U, REG_WT, CSR_ERR,  isLBU),
+            LHU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_2U, REG_WT, CSR_ERR,  isLHU),
+            LWU     -> List(ALU_ADD, OP1_RS1, OP2_IMI, MEM_LD , LSL_4U, REG_WT, CSR_ERR,  isLWU),
 
             SB      -> List(ALU_ADD, OP1_RS1, OP2_IMS, MEM_ST , LSL_1, REG_ERR, CSR_ERR, isSB),
             SH      -> List(ALU_ADD, OP1_RS1, OP2_IMS, MEM_ST , LSL_2, REG_ERR, CSR_ERR, isSH),
@@ -125,7 +127,7 @@ class IDU extends Module {
             JALR    -> List(ALU_JALR, OP1_RS1, OP2_IMI, MEM_ERR, LSL_0, REG_WT, CSR_ERR, isJALR)
         )
     )
-    val excode_tmp :: op1 :: op2 :: mem_wen :: wb_len :: reg_wen :: csr_opt :: inst_code_tmp :: Nil = decode
+    val excode_tmp :: op1 :: op2 :: mem_wen :: wb_msk :: reg_wen :: csr_opt :: inst_code_tmp :: Nil = decode
     io.out.bits.data1 := MuxCase(
         0.U(DATA_WIDTH.W),
         Seq(
@@ -144,7 +146,7 @@ class IDU extends Module {
         )
     )
 
-    io.br_taken := MuxCase(
+    io.out.bits.br_taken := MuxCase(
         false.B,
         Seq(
             (excode_tmp === BRC_BEQ)  -> (io.out.bits.data1 === io.out.bits.data2),
@@ -158,7 +160,7 @@ class IDU extends Module {
             (excode_tmp === FORCE_JUMP) -> (true.B)
         )
     )
-    io.br_target:= MuxCase(
+    io.out.bits.br_target:= MuxCase(
         io.in.bits.pc + imm_b_sext,
         Seq(
             (excode_tmp === ALU_JALR)   -> ((io.out.bits.data1 + io.out.bits.data2) & ~1.U(DATA_WIDTH.W)),
@@ -189,7 +191,7 @@ class IDU extends Module {
     io.out.bits.csr_wen  := MuxCase(false.B, Seq((csr_opt === CSR_WT) -> (true.B)))
     io.out.bits.csr_data := io.csr_rdata
    
-    io.out.bits.mem_len  := wb_len 
+    io.out.bits.mem_msk  := wb_msk 
     io.out.bits.mem_opt  := mem_wen
     io.out.bits.reg_wen  := (reg_wen === REG_WT)
     io.out.bits.mem_data := MuxCase(
@@ -203,4 +205,7 @@ class IDU extends Module {
     io.out.bits.excode   := excode_tmp
     io.out.bits.inst_code:= inst_code_tmp
     io.halt := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
+
+    // io.data1 := io.out.bits.data1
+    // io.data2 := io.out.bits.data2
 }

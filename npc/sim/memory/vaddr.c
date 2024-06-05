@@ -22,15 +22,15 @@ word_t vaddr_ifetch(vaddr_t addr, int len) {
 
 word_t vaddr_read(vaddr_t addr, int len) {
   // timer for io
-  if (addr == 0xa0000048) {return (word_t)get_time();}
-  if (addr == 0xa000004c) {return get_time() << 32;}
+  // if (addr == 0xa0000048) {return (word_t)get_time();}
+  // if (addr == 0xa000004c) {return get_time() << 32;}
   return paddr_read(addr, len);
 }
 
 void vaddr_write(vaddr_t addr, int len, word_t data) {
   // serail for io
-  if (addr == 0xa00003f8)
-    printf("%c", data);
-  else
+  // if (addr == 0xa00003f8)
+  //   printf("%c", data);
+  // else
     paddr_write(addr, len, data);
 }

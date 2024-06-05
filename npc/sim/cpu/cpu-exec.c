@@ -23,6 +23,13 @@
 #include "VTOP.h"
 #include "disasm.h"
 #include <vcd.h>
+#include "VTOP__Dpi.h"
+#include "svdpi.h"
+
+#define SERIAL_PORT 0xa00003f8
+#define RTC_ADDR    0xa0000048
+
+#define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 
 /* The assembly code of instructions executed is only output to the screen
@@ -43,6 +50,11 @@ void device_update();
 void watchpoint();
 void iringbuf_display();
 // void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+
+//DPI-C
+void check_halt(svBit flag){
+  halt = flag;
+}
 
 static void single_cycle() {
     top->clock = 0;
@@ -70,14 +82,22 @@ void RegUpdate(){
 }
 
 void PrintaLog(){
+   if (top->io_inst_req) Log("");
+  Log("mepc  : %x",    top->io_mepc);
+  Log("data1 : %08x",  top->io_data1);
+  Log("data2 : %08x",  top->io_data2);
+  Log("id-ins: %08x",  top->io_id_inst);
+  Log("ls-rdt: %08x",  top->io_ls_rdata);
+  Log("wb-wdt: %08x",  top->io_wb_wdata);
   // Log("rs1: %d", top->io_rs1);
   // Log("rs2: %d", top->io_rs2);
   // Log("rd : %d",  top->io_rd);
   // Log("data1 : %08x",  top->io_data1);
   // Log("data2 : %08x",  top->io_data2);
   // Log("res: %08x", top->io_res);
-  // Log("br_taken : %d", top->io_br_taken);
-  // Log("br_target: %08x", top->io_br_target);
+  Log("mem_valid: %d", top->io_mem_valid);
+  Log("br_taken : %d", top->io_br_taken);
+  Log("br_target: %08x", top->io_br_target);
   // Log("inst_code: %d", top->io_inst_code);
   // Log("isStore: %s", top->io_Store ? "true" : "false");
   // Log("isLoad : %s", top->io_Load ? "true" : "false");
@@ -86,28 +106,28 @@ void PrintaLog(){
   //   Log("waddr: %08x", top->io_data_sram_addr);
   // }
   // Log("inst_req : %d", top->io_inst_req);
-  // printf("\n");
+  printf("\n");
 }
 
-void LoadStore(){
-   if (top->io_Store == true) {
-    vaddr_write(top->io_data_sram_addr, top->io_SL_len, top->io_data_sram_wdata);
-  }
-  if (top->io_Load  == true) {
-    assert(top->io_inst_code >= 24);
-    assert(top->io_inst_code <= 29);
-    if (top->io_inst_code <= 26){
-      if (top->io_inst_code == 24)
-        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 8);
-      else if (top->io_inst_code == 25)
-        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 16);
-      else if (top->io_inst_code == 26)
-        top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 32);
-    }
-    else if (top->io_inst_code >= 27)
-      top->io_data_sram_rdata = vaddr_read(top->io_data_sram_addr, top->io_SL_len);
-  }
-}
+// void LoadStore(){
+//    if (top->io_Store == true) {
+//     vaddr_write(top->io_data_sram_addr, top->io_SL_len, top->io_data_sram_wdata);
+//   }
+//   if (top->io_Load  == true) {
+//     assert(top->io_inst_code >= 24);
+//     assert(top->io_inst_code <= 29);
+//     if (top->io_inst_code <= 26){
+//       if (top->io_inst_code == 24)
+//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 8);
+//       else if (top->io_inst_code == 25)
+//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 16);
+//       else if (top->io_inst_code == 26)
+//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 32);
+//     }
+//     else if (top->io_inst_code >= 27)
+//       top->io_data_sram_rdata = vaddr_read(top->io_data_sram_addr, top->io_SL_len);
+//   }
+// }
 
 void ftrace_jal(Decode *s, word_t rd){
   #ifdef CONFIG_FTRACE_COND
@@ -139,9 +159,12 @@ static void exec_once(Decode *s, vaddr_t pc) {
 
   // printf("get = %d\n", getinst);
   if (pc == 0x7ffffffc);//first_skip = true;
-  else if (getinst == 2) 
-    getinst = 0, top->io_inst = vaddr_read(pc, 4);
-  // if (pc == 0x80000000) first_skip = true;
+  else if (getinst == 2) {
+    // getinst = 0, 
+    top->io_inst = vaddr_read(pc, 4);
+  }
+  if (pc == 0x80000000) first_skip = true;
+  else first_skip = false;
   s->isa.inst.val = top->io_inst;
 #ifdef PRINT_LOG
   Log("%x %08x", s->pc, s->isa.inst.val);
@@ -156,17 +179,19 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #ifdef PRINT_LOG
   PrintaLog();
 #endif
-  LoadStore(); 
-
-  halt = top->io_halt;
-  if (halt) NPCTRAP(s->pc, 0);
+  // LoadStore(); 
 
   single_cycle();
+  if (halt) NPCTRAP(top->io_pc, 0);
+
+// if (top->io_inst_req)
+//   req_tag = 1;
+
+
 #ifdef CONFIG_DIFFTEST
   RegUpdate();
-  if (!first_skip && inst_req == 2) {
-    inst_req = 0;
-    printf("EX\n\n");
+  if (getinst == 2 && !first_skip) {
+    getinst = 0, 
     trace_and_difftest(s, top->io_pc);
   }
 #endif

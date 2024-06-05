@@ -7,8 +7,8 @@ class TRP extends BlackBox with HasBlackBoxResource {
   val io = IO(new Bundle {
     val clock = Input(Clock())
     val reset = Input(Bool())
-    val isEbreak = Input(Bool())
+    val halt  = Input(Bool())
   })
   
-  addResource("/trap.v")
+  addResource("/TRP.v")
 }
