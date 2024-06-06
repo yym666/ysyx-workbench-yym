@@ -14,7 +14,6 @@ import _root_.stage.WBU
 
 class TOP extends Module {
     val io = IO(new Bundle {
-        //inst sram interface
         val inst    = Output(UInt(DATA_WIDTH.W))
         val inst_req= Output(Bool())
         val pc      = Output(UInt(ADDR_WIDTH.W))
@@ -23,8 +22,6 @@ class TOP extends Module {
         val data1   = Output(UInt(DATA_WIDTH.W))
         val data2   = Output(UInt(DATA_WIDTH.W))
         val rd      = Output(UInt(REG_WIDTH.W))
-        // val res     = Output(UInt(DATA_WIDTH.W))
-        // val halt    = Output(UInt(1.W))
 
         val br_taken    = Output(Bool())
         val br_target   = Output(UInt(ADDR_WIDTH.W))
@@ -35,13 +32,6 @@ class TOP extends Module {
 
         val ldu_mem_opt = Output(UInt(INS_LEN.W))
         val idu_csr_rdt = Output(UInt(DATA_WIDTH.W))
-
-        
-        //data sram interface
-        // val data_sram_en    = Output(Bool())
-        // val data_sram_addr  = Output(UInt(ADDR_WIDTH.W))
-        // val data_sram_wdata = Output(UInt(DATA_WIDTH.W))
-        // val data_sram_rdata =  Input(UInt(DATA_WIDTH.W))
         val mstatus      = Output(UInt(DATA_WIDTH.W))
         // val mtvec     = Output(UInt(DATA_WIDTH.W))
     })
@@ -121,14 +111,6 @@ class TOP extends Module {
     CSR.io.set_mepc_val   <> IDU.io.set_mepc_val
     CSR.io.get_mepc       <> IDU.io.get_mepc
     CSR.io.get_mtvec      <> IDU.io.get_mtvec
-
-    //data_sram
-    // io.data_sram_wdata  <> LSU.io.wdata
-    // io.data_sram_addr   <> LSU.io.addr
-    // io.data_sram_en     <> LSU.io.isST
-    // io.inst_code        <> LSU.io.inst_code
-    // LSU.io.rdata        <> io.data_sram_rdata
-
 
     // io.halt     <> IDU.io.halt
 

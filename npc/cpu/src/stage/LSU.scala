@@ -49,11 +49,31 @@ class LSU extends Module {
 
     val mem_rdata_reg = RegInit(0.U(DATA_WIDTH.W))
     when(io.isLD){
-        mem_rdata_reg := io.rdata
+        mem_rdata_reg := MuxCase(
+            0.U,
+            Seq(
+                (io.in.bits.mem_msk === LSL_1) -> Cat(Fill(24, io.rdata( 7)), io.rdata( 7, 0)),
+                (io.in.bits.mem_msk === LSL_2) -> Cat(Fill(16, io.rdata(15)), io.rdata(15, 0)),
+                (io.in.bits.mem_msk === LSL_4) -> io.rdata,
+                (io.in.bits.mem_msk === LSL_1U) -> Cat(Fill(24, 0.U), io.rdata( 7, 0)),
+                (io.in.bits.mem_msk === LSL_2U) -> Cat(Fill(16, 0.U), io.rdata(15, 0)),
+                (io.in.bits.mem_msk === LSL_4U) -> io.rdata
+            )    
+        )
     }
     io.out.bits.mem_rdata   := mem_rdata_reg
     io.wdata := io.in.bits.mem_wdata
-    io.wmask := io.in.bits.mem_msk
+    io.wmask := MuxCase(
+        0.U,
+        Seq(
+            (io.in.bits.mem_msk === LSL_1) -> MSK_1,
+            (io.in.bits.mem_msk === LSL_2) -> MSK_2,
+            (io.in.bits.mem_msk === LSL_4) -> MSK_4,
+            (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
+            (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
+            (io.in.bits.mem_msk === LSL_4U) -> MSK_4
+        )
+    )
     io.addr  := io.in.bits.mem_addr
     io.isST  := (LSUstate === wait_ls2wb) && (io.in.bits.mem_opt === MEM_ST) 
     io.isLD  := (LSUstate === wait_ls2wb) && (io.in.bits.mem_opt === MEM_LD) 

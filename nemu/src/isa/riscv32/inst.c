@@ -43,7 +43,7 @@ static vaddr_t *csr_register(word_t imm) {
   }
 }
 
-#define ECALL(dnpc) {dnpc = (isa_raise_intr(11, s->pc)); }
+#define ECALL(dnpc) {dnpc = (isa_raise_intr(11, s->pc + 4)); }
 #define CSR(i)  *csr_register(i)
 
 #define src1R() do { *src1 = R(rs1); } while (0)

@@ -7,7 +7,7 @@ module IME(
 );
     always @(posedge valid) begin
         if(valid) begin
-            inst =  dpmem_read(pc, 16);
+            inst =  dpmem_read(pc);
         end
     end
 endmodule
