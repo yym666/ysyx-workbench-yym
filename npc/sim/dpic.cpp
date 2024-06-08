@@ -11,7 +11,6 @@ extern bool is_skip_ref;
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 extern "C" uint32_t dpmem_read(uint32_t addr){
-    // printf("addr = %08x\n mask = %08x\n", addr, rmask);
     if(!((addr >= 0x80000000 && addr <= 0x87ffffff) || 
          (addr == RTC_ADDR) || (addr == RTC_ADDR + 4))) 
 		return 0;

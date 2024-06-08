@@ -83,11 +83,11 @@ void RegUpdate(){
 
 void PrintaLog(){
    if (top->io_inst_req) Log("");
-  Log("mstat : %x",    top->io_mstatus);
+  Log("mepc  : %x",    top->io_mtvec);
   Log("data1 : %08x",  top->io_data1);
   Log("data2 : %08x",  top->io_data2);
   Log("id-ins: %08x",  top->io_id_inst);
-  Log("ls-rdt: %08x",  top->io_ls_rdata);
+  // Log("ls-rdt: %08x",  top->io_ls_rdata);
   Log("wb-wdt: %08x",  top->io_wb_wdata);
   Log("rs1: %d", top->io_rs1);
   Log("rs2: %d", top->io_rs2);

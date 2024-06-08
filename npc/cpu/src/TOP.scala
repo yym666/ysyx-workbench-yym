@@ -4,6 +4,7 @@ import chisel3.util._
 import config.MyConfig._
 import config.InstPat._
 import unit._
+import bus._
 import blackbox._
 
 import _root_.stage.IFU
@@ -26,13 +27,13 @@ class TOP extends Module {
         val br_taken    = Output(Bool())
         val br_target   = Output(UInt(ADDR_WIDTH.W))
         val id_inst     = Output(UInt(DATA_WIDTH.W))
-        val ls_rdata    = Output(UInt(DATA_WIDTH.W))
+        // val ls_rdata    = Output(UInt(DATA_WIDTH.W))
         val wb_wdata    = Output(UInt(DATA_WIDTH.W))
         val mem_valid   = Output(Bool())
 
         val ldu_mem_opt = Output(UInt(INS_LEN.W))
         val idu_csr_rdt = Output(UInt(DATA_WIDTH.W))
-        val mstatus      = Output(UInt(DATA_WIDTH.W))
+        val mtvec       = Output(UInt(DATA_WIDTH.W))
         // val mtvec     = Output(UInt(DATA_WIDTH.W))
     })
 
@@ -45,16 +46,18 @@ class TOP extends Module {
     val CSR = Module(new CSR())
 
     val TRP = Module(new TRP())
-    val MEM = Module(new MEM())
-    val IME = Module(new IME())
+    // val MEM = Module(new MEM())
+    // val IME = Module(new IME())
+    val ARB = Module(new ARB())
+    val IDM = Module(new IDM())
 
     //IFU get inst from TOP
     // IFU.io.inst     <> IME.io.inst
-    IME.io.inst        <> IDU.io.inst
-    IFU.io.ime_valid   <> IME.io.valid
-    IFU.io.out.bits.pc <> IME.io.pc
+    // IME.io.inst        <> IDU.io.inst
+    // IFU.io.ime_valid   <> IME.io.valid
+    // IFU.io.out.bits.pc <> IME.io.pc
 
-    io.inst := IME.io.inst
+    // io.inst := IME.io.inst
     io.pc   := IFU.io.out.bits.pc
      
     IFU.io.out <> IDU.io.in
@@ -68,16 +71,16 @@ class TOP extends Module {
     TRP.io.halt := IDU.io.halt
 
     //mem
-    MEM.io.clock := clock
-    MEM.io.reset := reset
-    MEM.io.valid := LSU.io.isST || LSU.io.isLD
-    MEM.io.wen   := LSU.io.isST && MEM.io.valid
+    // MEM.io.clock := clock
+    // MEM.io.reset := reset
+    // MEM.io.valid := LSU.io.isST || LSU.io.isLD
+    // MEM.io.wen   := LSU.io.isST && MEM.io.valid
 
-    MEM.io.waddr  <> LSU.io.addr
-    MEM.io.raddr  <> LSU.io.addr
-    MEM.io.wdata  <> LSU.io.wdata
-    MEM.io.wmask  <> LSU.io.wmask
-    LSU.io.rdata  <> MEM.io.rdata
+    // MEM.io.waddr  <> LSU.io.addr
+    // MEM.io.raddr  <> LSU.io.addr
+    // MEM.io.wdata  <> LSU.io.wdata
+    // MEM.io.wmask  <> LSU.io.wmask
+    // LSU.io.rdata  <> MEM.io.rdata
 
     // io.inst_code        <> LSU.io.inst_code
 
@@ -119,7 +122,7 @@ class TOP extends Module {
     // io.mtvec    <> CSR.io.get_mtvec
     // io.rd       <> IDU.io.out.bits.rd_addr
     // io.res      <> WBU.io.alu_res
-
+    io.inst     <> IFU.io.out.bits.inst
     io.rs1      <> IDU.io.rs1_addr
     io.rs2      <> IDU.io.rs2_addr
     io.data1    <> IDU.io.out.bits.data1
@@ -127,12 +130,44 @@ class TOP extends Module {
     io.br_taken     <> WBU.io.br_taken 
     io.br_target    <> WBU.io.br_target
     io.id_inst      <> IDU.io.out.bits.inst
-    io.ls_rdata     <> MEM.io.rdata
+    // io.ls_rdata     <> MEM.io.rdata
     io.wb_wdata     <> WBU.io.reg_wdata
     io.mem_valid    := LSU.io.isST || LSU.io.isLD
     io.inst_req     := IFU.io.inst_req
     io.ldu_mem_opt  := IDU.io.out.bits.inst_code
-    io.mstatus      := CSR.io.get_mstatus
+    io.mtvec         := CSR.io.get_mtvec
     io.idu_csr_rdt  := CSR.io.rdata
     io.rd := IDU.io.out.bits.rd_addr
+
+    //ARB
+    ARB.io.imem <> IFU.io.imem
+    ARB.io.dmem <> LSU.io.dmem
+
+    IDM.io.clk := clock
+    IDM.io.rst := reset
+    IDM.io.araddr  <> ARB.io.mem.araddr
+    IDM.io.arvalid <> ARB.io.mem.arvalid
+    IDM.io.arready <> ARB.io.mem.arready
+
+    IDM.io.rdata   <> ARB.io.mem.rdata
+    IDM.io.rresp   <> ARB.io.mem.rresp
+    IDM.io.rvalid  <> ARB.io.mem.rvalid
+    IDM.io.rready  <> ARB.io.mem.rready
+
+    IDM.io.awaddr  <> ARB.io.mem.awaddr
+    IDM.io.awvalid <> ARB.io.mem.awvalid
+    IDM.io.awready <> ARB.io.mem.awready
+    IDM.io.wdata   <> ARB.io.mem.wdata
+    IDM.io.wstrb   <> ARB.io.mem.wstrb
+    IDM.io.wvalid  <> ARB.io.mem.wvalid
+    IDM.io.wready  <> ARB.io.mem.wready
+
+    IDM.io.bresp   <> ARB.io.mem.bresp
+    IDM.io.bvalid  <> ARB.io.mem.bvalid
+    IDM.io.bready  <> ARB.io.mem.bready
+    
+    // ARB.io.mem.bid := DontCare
+    // ARB.io.mem.rid := DontCare
+    // ARB.io.mem.rlast := DontCare
+    
 }

@@ -122,9 +122,9 @@ object InstPat {
     val LSL_2U  = 4.U(LEN_LSL.W)
     val LSL_4U  = 16.U(LEN_LSL.W)
 
-    val MSK_1   = 1.U(8.W)
-    val MSK_2   = 3.U(8.W)
-    val MSK_4   = 15.U(8.W)
+    val MSK_1   = 1.U(4.W)
+    val MSK_2   = 3.U(4.W)
+    val MSK_4   = 15.U(4.W)
 
     val LEN_REG = 3
     val REG_ERR = 0.U(LEN_REG.W)
