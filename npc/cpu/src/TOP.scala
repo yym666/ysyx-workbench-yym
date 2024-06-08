@@ -46,10 +46,28 @@ class TOP extends Module {
     val CSR = Module(new CSR())
 
     val TRP = Module(new TRP())
-    // val MEM = Module(new MEM())
-    // val IME = Module(new IME())
     val ARB = Module(new ARB())
     val IDM = Module(new IDM())
+    val XBR = Module(new XBR())
+    val UART  = Module(new UART())
+    val CLINT = Module(new CLINT())
+
+
+    IDM.io.clk  := clock
+    IDM.io.rst  := reset
+    UART.io.clk := clock
+    UART.io.rst := reset
+    CLINT.io.clk:= clock
+    CLINT.io.rst:= reset
+
+    ARB.io.imem <> IFU.io.imem
+    ARB.io.dmem <> LSU.io.dmem
+    XBR.io.arb  <> ARB.io.mem
+    XBR.io.sram <> IDM.io.axi
+    XBR.io.uart <> UART.io.axi
+    XBR.io.clint<> CLINT.io.axi
+
+
 
     //IFU get inst from TOP
     // IFU.io.inst     <> IME.io.inst
@@ -139,32 +157,26 @@ class TOP extends Module {
     io.idu_csr_rdt  := CSR.io.rdata
     io.rd := IDU.io.out.bits.rd_addr
 
-    //ARB
-    ARB.io.imem <> IFU.io.imem
-    ARB.io.dmem <> LSU.io.dmem
+    // IDM.io.araddr  <> ARB.io.mem.araddr
+    // IDM.io.arvalid <> ARB.io.mem.arvalid
+    // IDM.io.arready <> ARB.io.mem.arready
 
-    IDM.io.clk := clock
-    IDM.io.rst := reset
-    IDM.io.araddr  <> ARB.io.mem.araddr
-    IDM.io.arvalid <> ARB.io.mem.arvalid
-    IDM.io.arready <> ARB.io.mem.arready
+    // IDM.io.rdata   <> ARB.io.mem.rdata
+    // IDM.io.rresp   <> ARB.io.mem.rresp
+    // IDM.io.rvalid  <> ARB.io.mem.rvalid
+    // IDM.io.rready  <> ARB.io.mem.rready
 
-    IDM.io.rdata   <> ARB.io.mem.rdata
-    IDM.io.rresp   <> ARB.io.mem.rresp
-    IDM.io.rvalid  <> ARB.io.mem.rvalid
-    IDM.io.rready  <> ARB.io.mem.rready
+    // IDM.io.awaddr  <> ARB.io.mem.awaddr
+    // IDM.io.awvalid <> ARB.io.mem.awvalid
+    // IDM.io.awready <> ARB.io.mem.awready
+    // IDM.io.wdata   <> ARB.io.mem.wdata
+    // IDM.io.wstrb   <> ARB.io.mem.wstrb
+    // IDM.io.wvalid  <> ARB.io.mem.wvalid
+    // IDM.io.wready  <> ARB.io.mem.wready
 
-    IDM.io.awaddr  <> ARB.io.mem.awaddr
-    IDM.io.awvalid <> ARB.io.mem.awvalid
-    IDM.io.awready <> ARB.io.mem.awready
-    IDM.io.wdata   <> ARB.io.mem.wdata
-    IDM.io.wstrb   <> ARB.io.mem.wstrb
-    IDM.io.wvalid  <> ARB.io.mem.wvalid
-    IDM.io.wready  <> ARB.io.mem.wready
-
-    IDM.io.bresp   <> ARB.io.mem.bresp
-    IDM.io.bvalid  <> ARB.io.mem.bvalid
-    IDM.io.bready  <> ARB.io.mem.bready
+    // IDM.io.bresp   <> ARB.io.mem.bresp
+    // IDM.io.bvalid  <> ARB.io.mem.bvalid
+    // IDM.io.bready  <> ARB.io.mem.bready
     
     // ARB.io.mem.bid := DontCare
     // ARB.io.mem.rid := DontCare

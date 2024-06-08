@@ -87,48 +87,16 @@ void PrintaLog(){
   Log("data1 : %08x",  top->io_data1);
   Log("data2 : %08x",  top->io_data2);
   Log("id-ins: %08x",  top->io_id_inst);
-  // Log("ls-rdt: %08x",  top->io_ls_rdata);
   Log("wb-wdt: %08x",  top->io_wb_wdata);
   Log("rs1: %d", top->io_rs1);
   Log("rs2: %d", top->io_rs2);
   Log("rd : %d",  top->io_rd);
-  // Log("data1 : %08x",  top->io_data1);
-  // Log("data2 : %08x",  top->io_data2);
-  // Log("res: %08x", top->io_res);
   Log("mem_valid: %d", top->io_mem_valid);
   Log("idu_mem_opt: %d", top->io_ldu_mem_opt);
   Log("br_taken : %d", top->io_br_taken);
   Log("br_target: %08x", top->io_br_target);
-  // Log("inst_code: %d", top->io_inst_code);
-  // Log("isStore: %s", top->io_Store ? "true" : "false");
-  // Log("isLoad : %s", top->io_Load ? "true" : "false");
-  // if (top->io_Store){
-  //   Log("wdata: %08x", top->io_data_sram_wdata);
-  //   Log("waddr: %08x", top->io_data_sram_addr);
-  // }
-  // Log("inst_req : %d", top->io_inst_req);
   printf("\n");
 }
-
-// void LoadStore(){
-//    if (top->io_Store == true) {
-//     vaddr_write(top->io_data_sram_addr, top->io_SL_len, top->io_data_sram_wdata);
-//   }
-//   if (top->io_Load  == true) {
-//     assert(top->io_inst_code >= 24);
-//     assert(top->io_inst_code <= 29);
-//     if (top->io_inst_code <= 26){
-//       if (top->io_inst_code == 24)
-//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 8);
-//       else if (top->io_inst_code == 25)
-//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 16);
-//       else if (top->io_inst_code == 26)
-//         top->io_data_sram_rdata = SEXT(vaddr_read(top->io_data_sram_addr, top->io_SL_len), 32);
-//     }
-//     else if (top->io_inst_code >= 27)
-//       top->io_data_sram_rdata = vaddr_read(top->io_data_sram_addr, top->io_SL_len);
-//   }
-// }
 
 void ftrace_jal(Decode *s, word_t rd){
   #ifdef CONFIG_FTRACE_COND
@@ -157,15 +125,9 @@ static void exec_once(Decode *s, vaddr_t pc) {
   bool first_skip = false;
   getinst *= 2;
   if (top->io_inst_req == 1) getinst = 1;
-
-  // printf("get = %d\n", getinst);
-  if (pc == 0x7ffffffc);//first_skip = true;
-  else if (getinst == 2) {
-    // getinst = 0, 
-    // top->io_inst = vaddr_read(pc, 4);
-  }
   if (pc == 0x80000000) first_skip = true;
   else first_skip = false;
+
   s->isa.inst.val = top->io_inst;
 #ifdef PRINT_LOG
   Log("%x %08x", s->pc, s->isa.inst.val);

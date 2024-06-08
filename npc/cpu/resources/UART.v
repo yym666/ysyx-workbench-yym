@@ -1,29 +1,26 @@
-import "DPI-C" context function int dpmem_read(input int raddr);
-import "DPI-C" context function void dpmem_write(input int waddr, input int axi_wdata, input byte wmask);
-  
-module IDM(
+module UART(
     input clk,
     input rst,
     //AR
-    input [31:0]    axi_araddr,
+    input   [31:0]  axi_araddr,
     input           axi_arvalid,
     output          axi_arready,
     //R
-    output reg [31:0]   axi_rdata,
-    output     [ 1:0]   axi_rresp,
+    output reg  [31:0]  axi_rdata,
+    output      [ 1:0]  axi_rresp,
     output              axi_rvalid,
     input               axi_rready,
     //AW
-    input [31:0]    axi_awaddr,
+    input   [31:0]  axi_awaddr,
     input           axi_awvalid,
     output          axi_awready,
     //W
-    input [31:0]    axi_wdata,
-    input [3:0]     axi_wstrb,
+    input   [31:0]  axi_wdata,
+    input   [ 3:0]  axi_wstrb,
     input           axi_wvalid,
     output          axi_wready,
     //B
-    output [1:0]    axi_bresp,
+    output  [ 1:0]  axi_bresp,
     output          axi_bvalid,
     input           axi_bready
 );
@@ -81,7 +78,7 @@ module IDM(
                 delayR          <= delayR - 1;
                 if(delayR == 0)begin
                     axi_rvalid_r <= 1'b1;
-                    axi_rdata = dpmem_read(axi_araddr);
+                    $write("UART read error");
                 end
                 else
                     axi_rvalid_r <= 1'b0;
@@ -142,8 +139,9 @@ module IDM(
                 axi_bresp_r     <= 2'b00;
                 delayW      <= delayW - 1;
                 if(delayW == 0) begin
+                    diff_skip();
+                    $write("%c", axi_wdata[7:0]);
                     axi_bvalid_r <= 1'b1;
-                    dpmem_write(axi_awaddr, axi_wdata, {{4'b0000}, axi_wstrb});
                 end
                 else
                     axi_bvalid_r <= 1'b0;
