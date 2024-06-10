@@ -10,6 +10,23 @@ class ARB extends Module{
         val dmem = new AXI
         val  mem = Flipped(new AXI)
     })
+    //DontCare
+    io.mem.arid    := 0.U
+    io.mem.arlen   := 0.U
+    io.mem.arsize  := 0.U
+    io.mem.arburst := 0.U
+    io.mem.awid    := 0.U
+    io.mem.awlen   := 0.U
+    io.mem.awsize  := 0.U
+    io.mem.awburst := 0.U
+    io.mem.wlast   := false.B
+
+    io.imem.rid     := 0.U
+    io.imem.bid     := 0.U
+    io.imem.rlast   := true.B
+    io.dmem.rid     := 0.U
+    io.dmem.bid     := 0.U
+    io.dmem.rlast   := true.B
     //IMEM
     val imem_arready= RegInit(io.imem.arready)
     val imem_rdata  = RegInit(io.imem.rdata)

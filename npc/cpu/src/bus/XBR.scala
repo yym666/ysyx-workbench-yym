@@ -10,6 +10,41 @@ class XBR extends Module{
         val sram  = Flipped(new AXI)
         val clint = Flipped(new AXI)
     })
+    //DontCare
+    io.uart.arid    := 0.U
+    io.uart.arlen   := 0.U
+    io.uart.arsize  := 0.U
+    io.uart.arburst := 0.U
+    io.uart.awid    := 0.U
+    io.uart.awlen   := 0.U
+    io.uart.awsize  := 0.U
+    io.uart.awburst := 0.U
+    io.uart.wlast   := false.B
+
+    io.sram.arid    := 0.U
+    io.sram.arlen   := 0.U
+    io.sram.arsize  := 0.U
+    io.sram.arburst := 0.U
+    io.sram.awid    := 0.U
+    io.sram.awlen   := 0.U
+    io.sram.awsize  := 0.U
+    io.sram.awburst := 0.U
+    io.sram.wlast   := false.B
+
+    io.clint.arid    := 0.U
+    io.clint.arlen   := 0.U
+    io.clint.arsize  := 0.U
+    io.clint.arburst := 0.U
+    io.clint.awid    := 0.U
+    io.clint.awlen   := 0.U
+    io.clint.awsize  := 0.U
+    io.clint.awburst := 0.U
+    io.clint.wlast   := false.B
+
+    io.arb.rid     := 0.U
+    io.arb.bid     := 0.U
+    io.arb.rlast   := true.B
+
     //ARB
     val arb_arready = RegInit(io.arb.arready)
     val arb_rdata   = RegInit(io.arb.rdata)
@@ -100,6 +135,7 @@ class XBR extends Module{
     ))
 
     val state = RegInit(chose)
+    io.uart.arid    := 0.U
     val nextState = WireDefault(chose)
     nextState := MuxLookup(state, chose)(Seq(
         chose -> Mux((io.arb.awvalid & io.arb.awready)|(io.arb.arvalid & io.arb.arready), Mux(

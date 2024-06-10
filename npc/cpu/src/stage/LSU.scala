@@ -38,23 +38,23 @@ class LSU extends Module {
     io.in.ready  := in_ready
     io.out.valid := out_valid
 
-    // io.dmem.arid    := 0.U
-    // io.dmem.arlen   := 0.U
-    // io.dmem.arburst := 0.U
-    // io.dmem.awid    := 0.U
-    // io.dmem.awlen   := 0.U
-    // io.dmem.awburst := 0.U
-    // io.dmem.wlast   := false.B
+    io.dmem.arid    := 0.U
+    io.dmem.arlen   := 0.U
+    io.dmem.arburst := 0.U
+    io.dmem.arsize  := DontCare
+    io.dmem.awid    := 0.U
+    io.dmem.awlen   := 0.U
+    io.dmem.awsize  := DontCare
+    io.dmem.awburst := 0.U
+    io.dmem.wlast   := false.B
     val dmem_arvalid= RegInit(io.dmem.arvalid)
     val dmem_rready = RegInit(io.dmem.rready)
     val dmem_awvalid= RegInit(io.dmem.awvalid)
     val dmem_wvalid = RegInit(io.dmem.wvalid)
     val dmem_bready = RegInit(io.dmem.bready)
     io.dmem.arvalid:= dmem_arvalid
-    // io.dmem.arsize := DontCare
     io.dmem.rready := dmem_rready
     io.dmem.awvalid:= dmem_awvalid
-    // io.dmem.awsize := DontCare
     io.dmem.wvalid := dmem_wvalid
     io.dmem.bready := dmem_bready
 
@@ -72,8 +72,6 @@ class LSU extends Module {
         slstate3    -> Mux(io.out.ready, wait_ex2ls, slstate3)
     ))
     LSUstate := NXTstate
-    // io.out.valid := Mux(LSUstate === wait_ex2ls, 0.U, 1.U)
-    // io.in.ready  := Mux(LSUstate === wait_ls2wb, 0.U, 1.U)
     io.lsu_done  := (LSUstate === wait_ex2ls)
 
     val lfsr  = RegInit(3.U(4.W))

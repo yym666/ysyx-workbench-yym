@@ -29,9 +29,6 @@ class IDU extends Module {
         
         val get_mepc    =  Input(UInt(DATA_WIDTH.W))
         val get_mtvec   =  Input(UInt(DATA_WIDTH.W))
-        // val data1    = Output(UInt(DATA_WIDTH.W))
-        // val data2    = Output(UInt(DATA_WIDTH.W))
-        
         // val br_taken    = Output(Bool())
         // val br_target   = Output(UInt(ADDR_WIDTH.W))
         val halt        = Output(Bool())
@@ -207,7 +204,4 @@ class IDU extends Module {
     io.out.bits.excode   := excode_tmp
     io.out.bits.inst_code:= inst_code_tmp
     io.halt := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
-
-    // io.data1 := io.out.bits.data1
-    // io.data2 := io.out.bits.data2
 }

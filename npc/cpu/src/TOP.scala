@@ -15,26 +15,11 @@ import _root_.stage.WBU
 
 class TOP extends Module {
     val io = IO(new Bundle {
-        val inst    = Output(UInt(DATA_WIDTH.W))
+        // val imem    = Flipped(new AXI)
+        // val dmem    = Flipped(new AXI)
         val inst_req= Output(Bool())
+        val inst    = Output(UInt(DATA_WIDTH.W))
         val pc      = Output(UInt(ADDR_WIDTH.W))
-        val rs1     = Output(UInt(REG_WIDTH.W))
-        val rs2     = Output(UInt(REG_WIDTH.W))
-        val data1   = Output(UInt(DATA_WIDTH.W))
-        val data2   = Output(UInt(DATA_WIDTH.W))
-        val rd      = Output(UInt(REG_WIDTH.W))
-
-        val br_taken    = Output(Bool())
-        val br_target   = Output(UInt(ADDR_WIDTH.W))
-        val id_inst     = Output(UInt(DATA_WIDTH.W))
-        // val ls_rdata    = Output(UInt(DATA_WIDTH.W))
-        val wb_wdata    = Output(UInt(DATA_WIDTH.W))
-        val mem_valid   = Output(Bool())
-
-        val ldu_mem_opt = Output(UInt(INS_LEN.W))
-        val idu_csr_rdt = Output(UInt(DATA_WIDTH.W))
-        val mtvec       = Output(UInt(DATA_WIDTH.W))
-        // val mtvec     = Output(UInt(DATA_WIDTH.W))
     })
 
     val IFU = Module(new IFU())
@@ -44,7 +29,6 @@ class TOP extends Module {
     val WBU = Module(new WBU())
     val GPR = Module(new GPR())
     val CSR = Module(new CSR())
-
     val TRP = Module(new TRP())
     val ARB = Module(new ARB())
     val IDM = Module(new IDM())
@@ -52,32 +36,22 @@ class TOP extends Module {
     val UART  = Module(new UART())
     val CLINT = Module(new CLINT())
 
+    IDM.io.clock    := clock
+    IDM.io.reset    := reset
+    UART.io.clock   := clock
+    UART.io.reset   := reset
+    CLINT.io.clock  := clock
+    CLINT.io.reset  := reset
 
-    IDM.io.clk  := clock
-    IDM.io.rst  := reset
-    UART.io.clk := clock
-    UART.io.rst := reset
-    CLINT.io.clk:= clock
-    CLINT.io.rst:= reset
-
+    XBR.io.arb  <> ARB.io.mem
     ARB.io.imem <> IFU.io.imem
     ARB.io.dmem <> LSU.io.dmem
-    XBR.io.arb  <> ARB.io.mem
     XBR.io.sram <> IDM.io.axi
     XBR.io.uart <> UART.io.axi
     XBR.io.clint<> CLINT.io.axi
 
-
-
-    //IFU get inst from TOP
-    // IFU.io.inst     <> IME.io.inst
-    // IME.io.inst        <> IDU.io.inst
-    // IFU.io.ime_valid   <> IME.io.valid
-    // IFU.io.out.bits.pc <> IME.io.pc
-
-    // io.inst := IME.io.inst
-    io.pc   := IFU.io.out.bits.pc
-     
+    // io.imem := IFU.io.imem
+    // io.dmem := LSU.io.dmem
     IFU.io.out <> IDU.io.in
     IDU.io.out <> EXU.io.in
     EXU.io.out <> LSU.io.in
@@ -87,20 +61,6 @@ class TOP extends Module {
     TRP.io.clock := clock
     TRP.io.reset := reset
     TRP.io.halt := IDU.io.halt
-
-    //mem
-    // MEM.io.clock := clock
-    // MEM.io.reset := reset
-    // MEM.io.valid := LSU.io.isST || LSU.io.isLD
-    // MEM.io.wen   := LSU.io.isST && MEM.io.valid
-
-    // MEM.io.waddr  <> LSU.io.addr
-    // MEM.io.raddr  <> LSU.io.addr
-    // MEM.io.wdata  <> LSU.io.wdata
-    // MEM.io.wmask  <> LSU.io.wmask
-    // LSU.io.rdata  <> MEM.io.rdata
-
-    // io.inst_code        <> LSU.io.inst_code
 
     IFU.io.idu_done  <> IDU.io.idu_done
     IFU.io.exu_done  <> EXU.io.exu_done
@@ -133,53 +93,8 @@ class TOP extends Module {
     CSR.io.get_mepc       <> IDU.io.get_mepc
     CSR.io.get_mtvec      <> IDU.io.get_mtvec
 
-    // io.halt     <> IDU.io.halt
-
     //DEBUG
-    // io.mepc     <> CSR.io.get_mepc
-    // io.mtvec    <> CSR.io.get_mtvec
-    // io.rd       <> IDU.io.out.bits.rd_addr
-    // io.res      <> WBU.io.alu_res
-    io.inst     <> IFU.io.out.bits.inst
-    io.rs1      <> IDU.io.rs1_addr
-    io.rs2      <> IDU.io.rs2_addr
-    io.data1    <> IDU.io.out.bits.data1
-    io.data2    <> IDU.io.out.bits.data2
-    io.br_taken     <> WBU.io.br_taken 
-    io.br_target    <> WBU.io.br_target
-    io.id_inst      <> IDU.io.out.bits.inst
-    // io.ls_rdata     <> MEM.io.rdata
-    io.wb_wdata     <> WBU.io.reg_wdata
-    io.mem_valid    := LSU.io.isST || LSU.io.isLD
     io.inst_req     := IFU.io.inst_req
-    io.ldu_mem_opt  := IDU.io.out.bits.inst_code
-    io.mtvec         := CSR.io.get_mtvec
-    io.idu_csr_rdt  := CSR.io.rdata
-    io.rd := IDU.io.out.bits.rd_addr
-
-    // IDM.io.araddr  <> ARB.io.mem.araddr
-    // IDM.io.arvalid <> ARB.io.mem.arvalid
-    // IDM.io.arready <> ARB.io.mem.arready
-
-    // IDM.io.rdata   <> ARB.io.mem.rdata
-    // IDM.io.rresp   <> ARB.io.mem.rresp
-    // IDM.io.rvalid  <> ARB.io.mem.rvalid
-    // IDM.io.rready  <> ARB.io.mem.rready
-
-    // IDM.io.awaddr  <> ARB.io.mem.awaddr
-    // IDM.io.awvalid <> ARB.io.mem.awvalid
-    // IDM.io.awready <> ARB.io.mem.awready
-    // IDM.io.wdata   <> ARB.io.mem.wdata
-    // IDM.io.wstrb   <> ARB.io.mem.wstrb
-    // IDM.io.wvalid  <> ARB.io.mem.wvalid
-    // IDM.io.wready  <> ARB.io.mem.wready
-
-    // IDM.io.bresp   <> ARB.io.mem.bresp
-    // IDM.io.bvalid  <> ARB.io.mem.bvalid
-    // IDM.io.bready  <> ARB.io.mem.bready
-    
-    // ARB.io.mem.bid := DontCare
-    // ARB.io.mem.rid := DontCare
-    // ARB.io.mem.rlast := DontCare
-    
+    io.inst     := IFU.io.out.bits.inst
+    io.pc       := IFU.io.out.bits.pc
 }

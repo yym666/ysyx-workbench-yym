@@ -28,7 +28,7 @@ static void sim_init(){
 }
 
 int main(int argc, char *argv[]) {
-
+	Verilated::commandArgs(argc, argv);
   sim_init();
   /* Initialize the monitor. */
 #ifdef CONFIG_TARGET_AM

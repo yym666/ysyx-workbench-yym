@@ -10,6 +10,9 @@ extern bool is_skip_ref;
 
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
+extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void mrom_read(int32_t addr, int32_t *data) { assert(0); }
+
 extern "C" void diff_skip(){
   is_skip_ref = true;
 }

@@ -86,6 +86,7 @@ NPC_BIN      = $(BUILD_DIR)/$(NPC_NAME)
 
 VERILATOR         = verilator
 VERILATOR_CFLAGS += -MMD --build -cc -O3 --trace
+# VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 
 $(NPC_BIN): $(SRCV_GEN) $(SRCC)
 	@rm -rf $(DIR_OBJ)

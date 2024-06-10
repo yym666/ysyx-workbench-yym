@@ -1,33 +1,49 @@
 module UART(
-    input clk,
-    input rst,
+    input clock,
+    input reset,
     //AR
-    input   [31:0]  axi_araddr,
+    input [ 3:0]    axi_arid,
+    input [ 7:0]    axi_arlen,
+    input [ 2:0]    axi_arsize,
+    input [ 1:0]    axi_arburst,
+    input [31:0]    axi_araddr,
     input           axi_arvalid,
     output          axi_arready,
     //R
-    output reg  [31:0]  axi_rdata,
-    output      [ 1:0]  axi_rresp,
+    output reg [63:0]   axi_rdata,
+    output     [ 1:0]   axi_rresp,
     output              axi_rvalid,
+    output              axi_rlast,
+    output     [ 3:0]   axi_rid,
     input               axi_rready,
     //AW
-    input   [31:0]  axi_awaddr,
+    input [ 3:0]    axi_awid,
+    input [ 7:0]    axi_awlen,
+    input [ 2:0]    axi_awsize,
+    input [ 1:0]    axi_awburst,
+    input [31:0]    axi_awaddr,
     input           axi_awvalid,
     output          axi_awready,
     //W
-    input   [31:0]  axi_wdata,
-    input   [ 3:0]  axi_wstrb,
+    input [63:0]    axi_wdata,
+    input [ 7:0]    axi_wstrb,
     input           axi_wvalid,
+    input           axi_wlast,
     output          axi_wready,
     //B
-    output  [ 1:0]  axi_bresp,
+    output [ 3:0]   axi_bid,
+    output [ 1:0]   axi_bresp,
     output          axi_bvalid,
     input           axi_bready
 );
+//DontCare
+    assign axi_bid = 0;
+    assign axi_rid = 0;
+    assign axi_rlast = 0;
 //LFSR
     reg [3:0]   lfsr;
-    always @(posedge clk) begin
-        if (rst) lfsr <= 4'b1111;
+    always @(posedge clock) begin
+        if (reset) lfsr <= 4'b1111;
         else lfsr <= {lfsr[2:0], lfsr[3] ^ lfsr[2]};
     end
 
@@ -44,8 +60,8 @@ module UART(
     parameter   Rstate1 = 1'b0;
     parameter   Rstate2 = 1'b1;
 
-    always @(posedge clk) begin
-        if(rst) begin
+    always @(posedge clock) begin
+        if(reset) begin
             Rstate <= Rstate1;
             delayR <= lfsr;
         end
@@ -53,7 +69,7 @@ module UART(
             Rstate <= nxtRstate;
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         case(Rstate)
             Rstate1:
                 nxtRstate = (axi_arvalid & axi_arready_r) ? Rstate2 : Rstate1;
@@ -64,7 +80,7 @@ module UART(
         endcase
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         case(nxtRstate)
             Rstate1: begin
                 axi_arready_r   <= 1'b1;
@@ -106,8 +122,8 @@ module UART(
     parameter Wstate1  = 1'b0;
     parameter Wstate2  = 1'b1;
 
-    always @(posedge clk) begin
-        if(rst) begin
+    always @(posedge clock) begin
+        if(reset) begin
             Wstate <= Wstate1;
             delayW <= lfsr;
         end
@@ -115,7 +131,7 @@ module UART(
             Wstate <= nxtWstate;
     end
 
-    always @(posedge clk) begin
+    always @(posedge clock) begin
         case(Wstate)
             Wstate1:
                 nxtWstate = (axi_awvalid & axi_awready_r) & (axi_wvalid & axi_wready_r) ? Wstate2 : Wstate1;
@@ -124,7 +140,7 @@ module UART(
         endcase
     end
 
-    always @(posedge clk)begin
+    always @(posedge clock)begin
         case(nxtWstate)
             Wstate1:begin
                 axi_awready_r   <= 1'b1;

@@ -82,20 +82,20 @@ void RegUpdate(){
 }
 
 void PrintaLog(){
-   if (top->io_inst_req) Log("");
-  Log("mepc  : %x",    top->io_mtvec);
-  Log("data1 : %08x",  top->io_data1);
-  Log("data2 : %08x",  top->io_data2);
-  Log("id-ins: %08x",  top->io_id_inst);
-  Log("wb-wdt: %08x",  top->io_wb_wdata);
-  Log("rs1: %d", top->io_rs1);
-  Log("rs2: %d", top->io_rs2);
-  Log("rd : %d",  top->io_rd);
-  Log("mem_valid: %d", top->io_mem_valid);
-  Log("idu_mem_opt: %d", top->io_ldu_mem_opt);
-  Log("br_taken : %d", top->io_br_taken);
-  Log("br_target: %08x", top->io_br_target);
-  printf("\n");
+  //  if (top->io_inst_req) Log("");
+  // Log("mepc  : %x",    top->io_mtvec);
+  // Log("data1 : %08x",  top->io_data1);
+  // Log("data2 : %08x",  top->io_data2);
+  // Log("id-ins: %08x",  top->io_id_inst);
+  // Log("wb-wdt: %08x",  top->io_wb_wdata);
+  // Log("rs1: %d", top->io_rs1);
+  // Log("rs2: %d", top->io_rs2);
+  // Log("rd : %d",  top->io_rd);
+  // Log("mem_valid: %d", top->io_mem_valid);
+  // Log("idu_mem_opt: %d", top->io_ldu_mem_opt);
+  // Log("br_taken : %d", top->io_br_taken);
+  // Log("br_target: %08x", top->io_br_target);
+  // printf("\n");
 }
 
 void ftrace_jal(Decode *s, word_t rd){

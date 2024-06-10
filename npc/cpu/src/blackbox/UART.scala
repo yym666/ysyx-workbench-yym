@@ -8,10 +8,9 @@ import bus._
  
 class UART extends BlackBox with HasBlackBoxResource {
   val io = IO(new Bundle {
-        val clk =   Input(Clock())
-        val rst =   Input(Bool())
-        //AR
-        val axi = new AXI
+        val clock = Input(Clock())
+        val reset = Input(Bool())
+        val axi   = new AXI
   })
   
   addResource("/UART.v")
