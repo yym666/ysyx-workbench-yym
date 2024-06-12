@@ -17,7 +17,7 @@
 #define CONFIG_MEM_RANDOM 1
 #define CONFIG_ISA_riscv 1
 #define CONFIG_TRACE_END 10000
-#define CONFIG_MBASE 0x80000000
+#define CONFIG_MBASE 0x20000000
 // #define CONFIG_TIMER_GETTIMEOFDAY 1
 #define CONFIG_ENGINE_INTERPRETER 1
 #define CONFIG_CC_OPT "-O2"
@@ -32,7 +32,7 @@
 #define CONFIG_TRACE_START 0
 #define CONFIG_CC_GCC 1
 // #define CONFIG_TRACE 1
-#define CONFIG_ISA "riscv32"
+#define CONFIG_ISA "riscv32e"
 #define CONFIG_PMEM_GARRAY 1
 
 // #define PRINT_LOG 1

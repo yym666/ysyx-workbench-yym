@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 #include <cpu/cpu.h>
 #include <isa.h>
+#include <vcd.h>
 
 bool is_skip_ref = false;
 
@@ -10,7 +11,6 @@ bool is_skip_ref = false;
 
 bool checkregs(CPU_state *ref_r, vaddr_t pc);
 void diff_print_regs(CPU_state *ref_r, vaddr_t pc);
-
 
 #define __EXPORT __attribute__((visibility("default")))
 
@@ -96,6 +96,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
 
   if(!checkregs(&ref_r, pc)){
     diff_print_regs(&ref_r, pc);
+    tfp -> close();
     exit(0);
   }
 }

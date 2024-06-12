@@ -23,6 +23,15 @@
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)
 //note monitor put guest progress here
 
+#define MROM_BASE 0x20000000
+#define MROM_SIZE 0xfff 
+
+#define SRAM_BASE 0x0f000000
+#define SRAM_SIZE 0x1fff
+
+#define UART_BASE 0x10000000
+#define UART_SIZE 0xfff
+
 /* convert the guest physical address in the guest program to host virtual address in NEMU */
 uint8_t* guest_to_host(paddr_t paddr);
 /* convert the host virtual address in NEMU to guest physical address in the guest program */

@@ -13,10 +13,10 @@ import _root_.stage.EXU
 import _root_.stage.LSU
 import _root_.stage.WBU
 
-class TOP extends Module {
+class CORE extends Module {
     val io = IO(new Bundle {
-        // val imem    = Flipped(new AXI)
-        // val dmem    = Flipped(new AXI)
+        val imem    = Flipped(new AXI)
+        val dmem    = Flipped(new AXI)
         val inst_req= Output(Bool())
         val inst    = Output(UInt(DATA_WIDTH.W))
         val pc      = Output(UInt(ADDR_WIDTH.W))
@@ -30,28 +30,28 @@ class TOP extends Module {
     val GPR = Module(new GPR())
     val CSR = Module(new CSR())
     val TRP = Module(new TRP())
-    val ARB = Module(new ARB())
-    val IDM = Module(new IDM())
-    val XBR = Module(new XBR())
-    val UART  = Module(new UART())
-    val CLINT = Module(new CLINT())
+    // val ARB = Module(new ARB())
+    // val IDM = Module(new IDM())
+    // val XBR = Module(new XBR())
+    // val UART  = Module(new UART())
+    // val CLINT = Module(new CLINT())
 
-    IDM.io.clock    := clock
-    IDM.io.reset    := reset
-    UART.io.clock   := clock
-    UART.io.reset   := reset
-    CLINT.io.clock  := clock
-    CLINT.io.reset  := reset
+    // IDM.io.clock    := clock
+    // IDM.io.reset    := reset
+    // UART.io.clock   := clock
+    // UART.io.reset   := reset
+    // CLINT.io.clock  := clock
+    // CLINT.io.reset  := reset
 
-    XBR.io.arb  <> ARB.io.mem
-    ARB.io.imem <> IFU.io.imem
-    ARB.io.dmem <> LSU.io.dmem
-    XBR.io.sram <> IDM.io.axi
-    XBR.io.uart <> UART.io.axi
-    XBR.io.clint<> CLINT.io.axi
+    // XBR.io.arb  <> ARB.io.mem
+    // ARB.io.imem <> IFU.io.imem
+    // ARB.io.dmem <> LSU.io.dmem
+    // XBR.io.sram <> IDM.io.axi
+    // XBR.io.uart <> UART.io.axi
+    // XBR.io.clint<> CLINT.io.axi
 
-    // io.imem := IFU.io.imem
-    // io.dmem := LSU.io.dmem
+    IFU.io.imem :<>= io.imem
+    LSU.io.dmem :<>= io.dmem
     IFU.io.out <> IDU.io.in
     IDU.io.out <> EXU.io.in
     EXU.io.out <> LSU.io.in

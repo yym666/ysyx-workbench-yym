@@ -25,7 +25,30 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 //note: CONFIG_MSIZE = 0x8000000 = 128MB
 #endif
 
-uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
+static uint8_t *mrom = NULL;
+static uint8_t *sram = NULL;
+
+static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
+static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
+
+static void out_of_bound(paddr_t addr) {
+  panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+      addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
+}
+
+uint8_t* guest_to_host(paddr_t paddr) { 
+    uint8_t* ret = NULL;
+    if(in_pmem(paddr)) 
+      ret = pmem + paddr - CONFIG_MBASE;
+    else if(in_mrom(paddr))
+      ret = mrom + paddr - MROM_BASE;
+    else if(in_sram(paddr))
+      ret = sram + paddr - SRAM_BASE;
+    else 
+      out_of_bound(paddr);
+    return ret;
+    // return pmem + paddr - CONFIG_MBASE; 
+}
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
@@ -37,11 +60,6 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
   host_write(guest_to_host(addr), len, data);
 }
 
-static void out_of_bound(paddr_t addr) {
-  panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
-      addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
-}
-
 void init_mem() {
 #if   defined(CONFIG_PMEM_MALLOC)
   pmem = malloc(CONFIG_MSIZE);
@@ -51,6 +69,22 @@ void init_mem() {
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 }
 
+void init_mrom() {
+  mrom = malloc(0xfff);
+  assert(mrom);
+  memset(mrom, 0, MROM_SIZE);
+  Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_BASE, MROM_BASE + MROM_SIZE);
+}
+
+void init_sram() {
+  sram = malloc(0x1fff);
+  assert(sram);
+  memset(sram, 0, SRAM_SIZE);
+  // for (int i = 0; i < SRAM_SIZE; ++i)
+  //   putc(sram + i, stderr);
+  Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_BASE, SRAM_BASE + SRAM_SIZE);
+}
+
 word_t paddr_read(paddr_t addr, int len) {
   #ifdef CONFIG_MTRACE_COND
     if (MTRACE_COND){
@@ -58,7 +92,7 @@ word_t paddr_read(paddr_t addr, int len) {
       mtrace_read(addr, len);
     }
   #endif
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  if (likely(in_pmem(addr)) || in_mrom(addr) || in_sram(addr)) return pmem_read(addr, len);
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   
   out_of_bound(addr);
@@ -72,7 +106,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
       mtrace_write(addr, len, data);
     }
   #endif
-  if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  if (likely(in_pmem(addr)) || in_mrom(addr) || in_sram(addr)) { pmem_write(addr, len, data); return; }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }

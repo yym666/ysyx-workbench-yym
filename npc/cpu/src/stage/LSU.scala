@@ -14,8 +14,8 @@ class LSU extends Module {
         val out=            Decoupled(new MessageLS2WB)
         val dmem =  Flipped(new AXI)
         
-        val wdata   = Output(UInt(DATA_WIDTH.W))
-        val wmask   = Output(UInt(8.W))
+        // val wdata   = Output(UInt(DATA_WIDTH.W))
+        // val wmask   = Output(UInt(8.W))
         
         val isST    = Output(Bool())
         val isLD    = Output(Bool())
@@ -141,8 +141,10 @@ class LSU extends Module {
 
     io.dmem.araddr   := io.in.bits.mem_addr
     io.dmem.awaddr   := io.in.bits.mem_addr
-    io.dmem.wdata    := io.in.bits.mem_wdata
-    io.dmem.wstrb    := MuxCase(
+    val mask_tmp= Wire(UInt(8.W))
+    val shift   = Wire(UInt(32.W))
+    val mem_addr_tmp = Wire(UInt(32.W))
+    mask_tmp := MuxCase(
         0.U,
         Seq(
             (io.in.bits.mem_msk === LSL_1) -> MSK_1,
@@ -153,30 +155,46 @@ class LSU extends Module {
             (io.in.bits.mem_msk === LSL_4U) -> MSK_4
         )
     )
+    mem_addr_tmp := io.in.bits.mem_addr & (~7.U(32.W))
+    shift        := io.in.bits.mem_addr - mem_addr_tmp
+    io.dmem.wstrb := mask_tmp << shift(2, 0)
+    io.dmem.wdata := io.in.bits.mem_wdata << (shift(2, 0) << 3)
+    // io.dmem.wstrb := MuxCase(
+    //     0.U,
+    //     Seq(
+    //         (io.in.bits.mem_msk === LSL_1) -> MSK_1,
+    //         (io.in.bits.mem_msk === LSL_2) -> MSK_2,
+    //         (io.in.bits.mem_msk === LSL_4) -> MSK_4,
+    //         (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
+    //         (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
+    //         (io.in.bits.mem_msk === LSL_4U) -> MSK_4
+    //     )
+    // )
+    val rdata_shif = io.dmem.rdata >> (shift(2, 0) << 3)
     val rdatareg = RegInit(UInt(DATA_WIDTH.W), 0.U)
     rdatareg := Mux(NXTstate === slstate3, Mux(io.isLD, MuxCase(0.U, Seq(
-                        (io.in.bits.mem_msk === LSL_1) -> Cat(Fill(24, io.dmem.rdata( 7)), io.dmem.rdata( 7, 0)),
-                        (io.in.bits.mem_msk === LSL_2) -> Cat(Fill(16, io.dmem.rdata(15)), io.dmem.rdata(15, 0)),
-                        (io.in.bits.mem_msk === LSL_4) -> io.dmem.rdata,
-                        (io.in.bits.mem_msk === LSL_1U) -> Cat(Fill(24, 0.U), io.dmem.rdata( 7, 0)),
-                        (io.in.bits.mem_msk === LSL_2U) -> Cat(Fill(16, 0.U), io.dmem.rdata(15, 0)),
-                        (io.in.bits.mem_msk === LSL_4U) -> io.dmem.rdata
+                        (io.in.bits.mem_msk === LSL_1) -> Cat(Fill(24, rdata_shif( 7)), rdata_shif( 7, 0)),
+                        (io.in.bits.mem_msk === LSL_2) -> Cat(Fill(16, rdata_shif(15)), rdata_shif(15, 0)),
+                        (io.in.bits.mem_msk === LSL_4) -> rdata_shif,
+                        (io.in.bits.mem_msk === LSL_1U) -> Cat(Fill(24, 0.U), rdata_shif( 7, 0)),
+                        (io.in.bits.mem_msk === LSL_2U) -> Cat(Fill(16, 0.U), rdata_shif(15, 0)),
+                        (io.in.bits.mem_msk === LSL_4U) -> rdata_shif
                     )), 0.U), rdatareg)
     io.out.bits.mem_rdata   := rdatareg
 
     //debug
-    io.wdata := io.in.bits.mem_wdata
-    io.wmask := MuxCase(
-        0.U,
-        Seq(
-            (io.in.bits.mem_msk === LSL_1) -> MSK_1,
-            (io.in.bits.mem_msk === LSL_2) -> MSK_2,
-            (io.in.bits.mem_msk === LSL_4) -> MSK_4,
-            (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
-            (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
-            (io.in.bits.mem_msk === LSL_4U) -> MSK_4
-        )
-    )
+    // io.wdata := io.in.bits.mem_wdata
+    // io.wmask := MuxCase(
+    //     0.U,
+    //     Seq(
+    //         (io.in.bits.mem_msk === LSL_1) -> MSK_1,
+    //         (io.in.bits.mem_msk === LSL_2) -> MSK_2,
+    //         (io.in.bits.mem_msk === LSL_4) -> MSK_4,
+    //         (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
+    //         (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
+    //         (io.in.bits.mem_msk === LSL_4U) -> MSK_4
+    //     )
+    // )
     io.isST  := (io.in.bits.mem_opt === MEM_ST) 
     io.isLD  := (io.in.bits.mem_opt === MEM_LD) 
 }

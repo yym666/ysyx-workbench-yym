@@ -18,6 +18,15 @@
 
 #include <common.h>
 
+#define MROM_BASE 0x20000000
+#define MROM_SIZE 0xfff 
+
+#define SRAM_BASE 0x0f000000
+#define SRAM_SIZE 0x1fff
+
+#define UART_BASE 0x10000000
+#define UART_SIZE 0xfff
+
 #define PMEM_LEFT  ((paddr_t)CONFIG_MBASE)
 #define PMEM_RIGHT ((paddr_t)CONFIG_MBASE + CONFIG_MSIZE - 1)
 #define RESET_VECTOR (PMEM_LEFT + CONFIG_PC_RESET_OFFSET)

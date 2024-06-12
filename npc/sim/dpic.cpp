@@ -11,7 +11,11 @@ extern bool is_skip_ref;
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
-extern "C" void mrom_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void mrom_read(int addr, int *data) {
+	int align_addr = addr & (~3);
+	*data = *(int *)guest_to_host(align_addr);
+	return;
+}
 
 extern "C" void diff_skip(){
   is_skip_ref = true;
@@ -25,8 +29,6 @@ extern "C" uint32_t dpmem_read(uint32_t addr){
 		is_skip_ref = true;
     if (addr == 0xa0000048) {return (word_t)get_time();}
     if (addr == 0xa000004c) {return get_time() << 32;}
-
-    
     uint32_t *paddr = (uint32_t *)guest_to_host(addr);
     return *paddr;
 

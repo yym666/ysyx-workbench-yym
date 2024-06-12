@@ -19,15 +19,18 @@
 #include <cpu/ifetch.h>
 #include <verilated.h>  
 #include <verilated_vcd_c.h> 
-#include "VTOP___024root.h" 
-#include "VTOP.h"
+#include "VysyxSoCFull___024root.h" 
+#include "VysyxSoCFull.h"
 #include "disasm.h"
 #include <vcd.h>
-#include "VTOP__Dpi.h"
+#include "VysyxSoCFull__Dpi.h"
 #include "svdpi.h"
 
 #define SERIAL_PORT 0xa00003f8
 #define RTC_ADDR    0xa0000048
+
+#define TOPPC  top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__IFU__DOT__pc_reg
+#define TOPREG top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__GPR__DOT__regs_ext__DOT__Memory
 
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
@@ -49,9 +52,7 @@ static bool halt = false;
 void device_update();
 void watchpoint();
 void iringbuf_display();
-// void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
 
-//DPI-C
 void check_halt(svBit flag){
   halt = flag;
 }
@@ -76,26 +77,9 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 
 void RegUpdate(){
   for (int i = 0; i < 32; ++i){
-    cpu.gpr[i] = top->rootp->TOP__DOT__GPR__DOT__regs_ext__DOT__Memory[i];
+    cpu.gpr[i] = TOPREG[i];
   }
-  cpu.pc =  top->io_pc;
-}
-
-void PrintaLog(){
-  //  if (top->io_inst_req) Log("");
-  // Log("mepc  : %x",    top->io_mtvec);
-  // Log("data1 : %08x",  top->io_data1);
-  // Log("data2 : %08x",  top->io_data2);
-  // Log("id-ins: %08x",  top->io_id_inst);
-  // Log("wb-wdt: %08x",  top->io_wb_wdata);
-  // Log("rs1: %d", top->io_rs1);
-  // Log("rs2: %d", top->io_rs2);
-  // Log("rd : %d",  top->io_rd);
-  // Log("mem_valid: %d", top->io_mem_valid);
-  // Log("idu_mem_opt: %d", top->io_ldu_mem_opt);
-  // Log("br_taken : %d", top->io_br_taken);
-  // Log("br_target: %08x", top->io_br_target);
-  // printf("\n");
+  cpu.pc = TOPPC;
 }
 
 void ftrace_jal(Decode *s, word_t rd){
@@ -118,17 +102,15 @@ void ftrace_jalr(Decode *s, word_t rd){
   #endif
 }
 
-int getinst = 0;
+int last_pc = 0;
 
 static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc, s->snpc = pc;
-  bool first_skip = false;
-  getinst *= 2;
-  if (top->io_inst_req == 1) getinst = 1;
-  if (pc == 0x80000000) first_skip = true;
+  bool first_skip = false; 
+  if (TOPPC == 0x20000000 || TOPPC == 0x1ffffffc) first_skip = true;
   else first_skip = false;
 
-  s->isa.inst.val = top->io_inst;
+  //q s->isa.inst.val = top->io_inst;
 #ifdef PRINT_LOG
   Log("%x %08x", s->pc, s->isa.inst.val);
 #endif
@@ -139,25 +121,18 @@ static void exec_once(Decode *s, vaddr_t pc) {
   // s->dnpc = top->io_br_target;
   // if (top->io_inst_code == isJAL) ftrace_jal(s, top->io_rd);
   // if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
-#ifdef PRINT_LOG
-  PrintaLog();
-#endif
-  // LoadStore(); 
 
   single_cycle();
-  if (halt) NPCTRAP(top->io_pc, 0);
-
-// if (top->io_inst_req)
-//   req_tag = 1;
-
 
 #ifdef CONFIG_DIFFTEST
   RegUpdate();
-  if (getinst == 2 && !first_skip) {
-    getinst = 0, 
-    trace_and_difftest(s, top->io_pc);
+  if (last_pc != TOPPC && !first_skip) {
+    last_pc = TOPPC;
+    s->pc   = TOPPC;
+    trace_and_difftest(s, TOPPC);
   }
 #endif
+  if (halt) NPCTRAP(TOPPC, 0);
 
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
@@ -188,12 +163,11 @@ static void exec_once(Decode *s, vaddr_t pc) {
 static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
-    // exec_once(&s, top->io_pc);
-    exec_once(&s, top->rootp->TOP__DOT__IFU__DOT__pc_reg);
+    exec_once(&s, TOPPC);
     
     if (halt) return;
     g_nr_guest_inst ++;
-    //cause strange output
+    
     if (npc_state.state != NPC_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
   }
@@ -253,4 +227,6 @@ void cpu_exec(uint64_t n) {
       // fall through
     case NPC_QUIT: statistic();
   }
+
+    tfp -> close();
 }

@@ -10,7 +10,7 @@ int is_exit_status_bad();
 
 VerilatedContext *contextp = NULL;
 VerilatedVcdC *tfp = NULL;
-VTOP* top = new VTOP;
+VysyxSoCFull* top = new VysyxSoCFull;
 
 void step_and_dump_wave(){
   top->eval();
@@ -21,7 +21,7 @@ void step_and_dump_wave(){
 static void sim_init(){
     contextp = new VerilatedContext;
     tfp = new VerilatedVcdC;
-    top = new VTOP;
+    top = new VysyxSoCFull;
     contextp -> traceEverOn(true);
 	  top -> trace(tfp, 0);
     tfp -> open("dump.vcd");

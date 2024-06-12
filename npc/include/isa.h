@@ -20,7 +20,7 @@
 #include <isa-def.h>
 #include <verilated.h>   //访问验证程序例程的库
 #include <verilated_vcd_c.h>  //向VCD文件中写入波形
-#include "VTOP.h"
+#include "VysyxSoCFull.h"
 
 // The macro `__GUEST_ISA__` is defined in $(CFLAGS).
 // It will be expanded as "x86" or "mips32" ...

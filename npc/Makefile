@@ -47,9 +47,19 @@ LDFLAGS += $(CFLAGS_BUILD)               \
 DIRS = $(abspath $(NPC_HOME)/cpu)
 SRCS = $(shell find $(DIRS) -name "*.scala")
 
+#SOC
+YSYXSoC = ../ysyxSoC
+
 # verilog_src
-TOP_NAME = TOP
-SRCV_GEN = $(BUILD_DIR)/$(TOP_NAME).v
+TOP_NAME = ysyxSoCFull
+
+BIN      = $(BUILD_DIR)/$(TOP_NAME)
+
+MCR_NAME = ysyx_23060250
+SRCV_GEN = $(BUILD_DIR)/$(MCR_NAME).v
+# VSRCS += SRCV_GEN
+VSRCS += $(shell find $(abspath $(YSYXSoC)/perip) -name "*.v")
+VSRCS += $(shell find $(abspath $(YSYXSoC)/build) -name "*.v")
 
 # include
 DIRI  = $(NPC_HOME)/include           	\
@@ -81,31 +91,30 @@ $(SRCV_GEN): $(SRCS)
 	mill -i __.test.runMain Elaborate --target-dir $(BUILD_DIR)
 	@sed -i '/\/\/ ----- 8< ----- FILE "firrtl_black_box_resource_files.f" ----- 8< -----/,$$d' $@
 
-# NPC_BIN_NAME = $(GUEST_ISA)-npc-$(ENGINE)
-NPC_BIN      = $(BUILD_DIR)/$(NPC_NAME)
+# BIN      = $(BUILD_DIR)/$(NPC_NAME)
 
 VERILATOR         = verilator
+VERILATOR_INC     = -I$(YSYXSoC)/perip/uart16550/rtl -I$(YSYXSoC)/perip/spi/rtl
 VERILATOR_CFLAGS += -MMD --build -cc -O3 --trace
-# VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
+VERILATOR_CFLAGS += $(VERILATOR_INC)
+VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
+VERILATOR_CFLAGS += --autoflush
 
-$(NPC_BIN): $(SRCV_GEN) $(SRCC)
+$(BIN): $(VSRCS) $(SRCV_GEN) $(SRCC)
 	@rm -rf $(DIR_OBJ)
 	$(VERILATOR) $(VERILATOR_CFLAGS)        \
-	--top-module $(TOP_NAME) $(SRCV_GEN) $(SRCC) \
+	--top-module $(TOP_NAME) $(VSRCS) $(SRCV_GEN) $(SRCC) \
 	$(addprefix -CFLAGS ,  $(CFLAGS))           \
 	$(addprefix -LDFLAGS , $(LDFLAGS))          \
-	--Mdir $(DIR_OBJ) --exe -o $(abspath $(NPC_BIN))
+	--Mdir $(DIR_OBJ) --exe -o $(abspath $(BIN))
 
 
 override ARGS ?= --log=$(BUILD_DIR)/npc-log.txt
 override ARGS += --diff=$(NEMU_HOME)/build/riscv32-nemu-interpreter-so 
 IMG ?=
-NPC_EXEC := $(NPC_BIN) $(ARGS) $(IMG)
+NPC_EXEC := $(BIN) $(ARGS) $(IMG)
 
-show:
-	@echo $(NPC_BIN) $(SRCV_GEN)
-
-run: $(NPC_BIN) $(DIFF_REF_SO)
+run: $(BIN) $(DIFF_REF_SO)
 	$(call git_commit, "run NPC")
 	$(NPC_EXEC)
 

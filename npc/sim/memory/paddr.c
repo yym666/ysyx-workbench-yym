@@ -23,12 +23,29 @@
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
-// static 
-uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 //note: CONFIG_MSIZE = 0x8000000 = 128MB
 #endif
 
-uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
+static uint8_t *mrom = NULL;
+static uint8_t *sram = NULL;
+
+// static inline bool likely_in_pmem(paddr_t addr) { return addr - CONFIG_MBASE < CONFIG_MSIZE; }
+static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
+static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
+
+uint8_t* guest_to_host(paddr_t paddr) {
+	// if(likely_in_mrom(paddr))
+	// 	return mrom + (paddr - MROM_BASE);
+	// // else if(likely_in_pmem(paddr))
+	// // 	return pmem + (paddr - RESET_VECTOR);
+	// else if(likely_in_sram(paddr))
+	// 	return sram + (paddr - SRAM_BASE);
+	// else{
+	// 	panic("%#x is out of bound in npc", paddr);
+	// }
+    return pmem + paddr - CONFIG_MBASE; 
+}
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
