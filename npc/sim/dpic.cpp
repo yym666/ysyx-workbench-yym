@@ -10,7 +10,15 @@ extern bool is_skip_ref;
 
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
-extern "C" void flash_read(int32_t addr, int32_t *data) { assert(0); }
+extern "C" void flash_read(int addr, int *data) { 
+	int align_addr = addr + FLASH_BASE;
+  // printf("Addr=%x\n", addr);
+	*data = *(int *)guest_to_host(align_addr);
+  // printf("Data=%x\n", *data);
+  assert(*data != 0);
+  return;
+}
+
 extern "C" void mrom_read(int addr, int *data) {
 	int align_addr = addr & (~3);
 	*data = *(int *)guest_to_host(align_addr);

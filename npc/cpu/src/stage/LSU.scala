@@ -181,20 +181,6 @@ class LSU extends Module {
                         (io.in.bits.mem_msk === LSL_4U) -> rdata_shif
                     )), 0.U), rdatareg)
     io.out.bits.mem_rdata   := rdatareg
-
-    //debug
-    // io.wdata := io.in.bits.mem_wdata
-    // io.wmask := MuxCase(
-    //     0.U,
-    //     Seq(
-    //         (io.in.bits.mem_msk === LSL_1) -> MSK_1,
-    //         (io.in.bits.mem_msk === LSL_2) -> MSK_2,
-    //         (io.in.bits.mem_msk === LSL_4) -> MSK_4,
-    //         (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
-    //         (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
-    //         (io.in.bits.mem_msk === LSL_4U) -> MSK_4
-    //     )
-    // )
     io.isST  := (io.in.bits.mem_opt === MEM_ST) 
     io.isLD  := (io.in.bits.mem_opt === MEM_LD) 
 }

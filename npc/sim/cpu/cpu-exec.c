@@ -107,7 +107,7 @@ int last_pc = 0;
 static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc, s->snpc = pc;
   bool first_skip = false; 
-  if (TOPPC == 0x20000000 || TOPPC == 0x1ffffffc) first_skip = true;
+  if (TOPPC == 0x30000000 || TOPPC == 0x1ffffffc) first_skip = true;
   else first_skip = false;
 
   //q s->isa.inst.val = top->io_inst;

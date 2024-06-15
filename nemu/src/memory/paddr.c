@@ -27,9 +27,13 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 
 static uint8_t *mrom = NULL;
 static uint8_t *sram = NULL;
+static uint8_t *uart = NULL;
+static uint8_t *flash = NULL;
 
 static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
 static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
+static inline bool in_uart(paddr_t addr) { return addr - UART_BASE < UART_SIZE; }
+static inline bool in_flash(paddr_t addr) { return addr - FLASH_BASE < FLASH_SIZE; }
 
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
@@ -40,6 +44,10 @@ uint8_t* guest_to_host(paddr_t paddr) {
     uint8_t* ret = NULL;
     if(in_pmem(paddr)) 
       ret = pmem + paddr - CONFIG_MBASE;
+    else if(in_uart(paddr))
+      ret = uart + paddr - UART_BASE;
+    else if(in_flash(paddr))
+      ret = flash + paddr - FLASH_BASE;
     else if(in_mrom(paddr))
       ret = mrom + paddr - MROM_BASE;
     else if(in_sram(paddr))
@@ -76,14 +84,29 @@ void init_mrom() {
   Log("mrom area [" FMT_PADDR ", " FMT_PADDR "]", MROM_BASE, MROM_BASE + MROM_SIZE);
 }
 
+
+void init_flash() {
+  flash = malloc(0xfff);
+  assert(flash);
+  memset(flash, 0, FLASH_SIZE);
+  Log("flash area [" FMT_PADDR ", " FMT_PADDR "]", FLASH_BASE, MROM_BASE + FLASH_SIZE);
+}
+
 void init_sram() {
   sram = malloc(0x1fff);
   assert(sram);
   memset(sram, 0, SRAM_SIZE);
-  // for (int i = 0; i < SRAM_SIZE; ++i)
-  //   putc(sram + i, stderr);
   Log("sram area [" FMT_PADDR ", " FMT_PADDR "]", SRAM_BASE, SRAM_BASE + SRAM_SIZE);
 }
+
+void init_uart() {
+  uart = malloc(0xfff);
+  assert(uart);
+  memset(uart, 0, UART_SIZE);
+  Log("uart area [" FMT_PADDR ", " FMT_PADDR "]", UART_BASE, UART_BASE + UART_SIZE);
+}
+
+bool nemu_skip = false;
 
 word_t paddr_read(paddr_t addr, int len) {
   #ifdef CONFIG_MTRACE_COND
@@ -93,8 +116,8 @@ word_t paddr_read(paddr_t addr, int len) {
     }
   #endif
   if (likely(in_pmem(addr)) || in_mrom(addr) || in_sram(addr)) return pmem_read(addr, len);
+  if (in_uart(addr)) { nemu_skip = true; return 0;}
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
-  
   out_of_bound(addr);
   return 0;
 }
@@ -107,6 +130,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
     }
   #endif
   if (likely(in_pmem(addr)) || in_mrom(addr) || in_sram(addr)) { pmem_write(addr, len, data); return; }
+  if (in_uart(addr)) return;
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }

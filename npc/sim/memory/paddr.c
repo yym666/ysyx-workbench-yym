@@ -20,30 +20,30 @@
 
 #define CONFIG_DEVICE 1
 
-#if   defined(CONFIG_PMEM_MALLOC)
+// #if   defined(CONFIG_PMEM_MALLOC)
+// static uint8_t *pmem = NULL;
+// #else // CONFIG_PMEM_GARRAY
+// // static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+// //note: CONFIG_MSIZE = 0x8000000 = 128MB
+// #endif
+
 static uint8_t *pmem = NULL;
-#else // CONFIG_PMEM_GARRAY
-static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
-//note: CONFIG_MSIZE = 0x8000000 = 128MB
-#endif
+static uint8_t *flash = NULL;
 
-static uint8_t *mrom = NULL;
-static uint8_t *sram = NULL;
-
-// static inline bool likely_in_pmem(paddr_t addr) { return addr - CONFIG_MBASE < CONFIG_MSIZE; }
-static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
-static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
+// static inline bool in_pmem(paddr_t addr) { return addr - RESET_VECTOR < 0xfffffff; }
+// static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
+// static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
+static inline bool in_flash(paddr_t addr) { return addr - FLASH_BASE < FLASH_SIZE; }
 
 uint8_t* guest_to_host(paddr_t paddr) {
-	// if(likely_in_mrom(paddr))
-	// 	return mrom + (paddr - MROM_BASE);
-	// // else if(likely_in_pmem(paddr))
-	// // 	return pmem + (paddr - RESET_VECTOR);
-	// else if(likely_in_sram(paddr))
-	// 	return sram + (paddr - SRAM_BASE);
-	// else{
-	// 	panic("%#x is out of bound in npc", paddr);
-	// }
+	if(in_flash(paddr))
+		return flash + (paddr - FLASH_BASE);
+	else if(in_pmem(paddr))
+		return pmem + (paddr - RESET_VECTOR);
+	else{
+    printf("paddr: %x\n", paddr);
+		assert(0);
+	}
     return pmem + paddr - CONFIG_MBASE; 
 }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
@@ -62,13 +62,43 @@ static void out_of_bound(paddr_t addr) {
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
 }
 
-void init_mem() {
-#if   defined(CONFIG_PMEM_MALLOC)
-  pmem = malloc(CONFIG_MSIZE);
-  assert(pmem);
-#endif
-  IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
-  Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+// void init_mem() {
+// #if   defined(CONFIG_PMEM_MALLOC)
+//   pmem = malloc(CONFIG_MSIZE);
+//   assert(pmem);
+// #endif
+//   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
+//   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
+// }
+static const uint32_t img [] = {
+  0x00000297,  // auipc t0,0
+  0x00028823,  // sb  zero,16(t0)
+  0x0102c503,  // lbu a0,16(t0)
+  0x00100073,  // ebreak (used as npc_trap)
+  0xdeadbeef,  // some data
+};
+
+static const uint32_t flash_test [] = {
+  0xffffffff,  // auipc t0,0
+  0xffffffff,  // sb  zero,16(t0)
+  0xffffffff,  // lbu a0,16(t0)
+  0xffffffff,  // ebreak (used as npc_trap)
+  0xffffffff,  // some data
+};
+
+void init_mem(){ 
+  int siz = 0x7fffffff;
+	pmem = (uint8_t *)malloc(siz * sizeof(uint8_t));
+	memcpy(pmem , img , sizeof(img));
+	if(pmem == NULL){exit(0);}
+	Log("npc physical mrom area [%#x, %#lx]", RESET_VECTOR, RESET_VECTOR + siz * sizeof(uint8_t));
+}
+
+void init_flash() {
+	flash = (uint8_t *)malloc(0xfffffff * sizeof(uint8_t));
+	memcpy(flash , flash_test , sizeof(flash_test));
+	if(flash == NULL) assert(0);
+	Log("flash area [%#x, %#x]",FLASH_BASE, FLASH_BASE + FLASH_SIZE);
 }
 
 word_t paddr_read(paddr_t addr, int len) {

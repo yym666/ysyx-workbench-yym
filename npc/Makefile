@@ -90,9 +90,7 @@ $(SRCV_GEN): $(SRCS)
 	mkdir -p $(BUILD_DIR)                           
 	mill -i __.test.runMain Elaborate --target-dir $(BUILD_DIR)
 	@sed -i '/\/\/ ----- 8< ----- FILE "firrtl_black_box_resource_files.f" ----- 8< -----/,$$d' $@
-
-# BIN      = $(BUILD_DIR)/$(NPC_NAME)
-
+	
 VERILATOR         = verilator
 VERILATOR_INC     = -I$(YSYXSoC)/perip/uart16550/rtl -I$(YSYXSoC)/perip/spi/rtl
 VERILATOR_CFLAGS += -MMD --build -cc -O3 --trace

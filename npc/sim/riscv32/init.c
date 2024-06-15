@@ -30,18 +30,36 @@ static const uint32_t img [] = {
   0xdeadbeef,  // some data
 };
 
+static const uint32_t flash_test [] = {
+  0xffffffff,  // auipc t0,0
+  0xffffffff,  // sb  zero,16(t0)
+  0xffffffff,  // lbu a0,16(t0)
+  0xffffffff,  // ebreak (used as npc_trap)
+  0xffffffff,  // some data
+};
+
 static void restart() {
   /* Set the initial program counter. */
   cpu.pc = RESET_VECTOR;
   top->reset = 1;
+  for (int i = 1; i <= 12; ++i){
   step_and_dump_wave();
   top->clock = 0;
   step_and_dump_wave();
   top->clock = 1;
-  step_and_dump_wave();
-  top->clock = 0;
-  step_and_dump_wave();
-  top->clock = 1;
+  }
+  // step_and_dump_wave();
+  // top->clock = 0;
+  // step_and_dump_wave();
+  // top->clock = 1;
+  // step_and_dump_wave();
+  // top->clock = 0;
+  // step_and_dump_wave();
+  // top->clock = 1;
+  // step_and_dump_wave();
+  // top->clock = 0;
+  // step_and_dump_wave();
+  // top->clock = 1;
   step_and_dump_wave();
   top->reset = 0;
   // step_and_dump_wave();

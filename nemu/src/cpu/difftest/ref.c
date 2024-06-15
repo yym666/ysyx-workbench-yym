@@ -53,9 +53,21 @@ __EXPORT void difftest_init(int port) {
   void init_mem();
   void init_mrom();
   void init_sram();
+  void init_uart();
+  void init_flash();
   init_mem();
   init_mrom();
   init_sram();
+  init_uart();
+  init_flash();
   /* Perform ISA dependent initialization. */
   init_isa();
 }
+
+__EXPORT bool difftest_skip() {
+  extern bool nemu_skip;
+  bool ret = nemu_skip;
+  nemu_skip = false;
+  return ret;
+}
+
