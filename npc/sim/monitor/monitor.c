@@ -21,6 +21,7 @@ void init_rand();
 void init_log(const char *log_file);
 void init_mem();
 void init_flash();
+void init_sdram();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
@@ -129,6 +130,8 @@ void init_monitor(int argc, char *argv[]) {
   init_mem();
 
   init_flash();
+
+  init_sdram();
 
   /* Initialize devices. */
   // IFDEF(CONFIG_DEVICE, init_device());

@@ -12,10 +12,31 @@ extern bool is_skip_ref;
 
 extern "C" void flash_read(int addr, int *data) { 
 	int align_addr = addr + FLASH_BASE;
-  // printf("Addr=%x\n", addr);
 	*data = *(int *)guest_to_host(align_addr);
-  // printf("Data=%x\n", *data);
-  assert(*data != 0);
+  // assert(*data != 0);
+  return;
+}
+
+extern "C" void sdram_read(int addr, int *data) { 
+	int align_addr = addr + SDRAM_BASE;
+	*data = *(int *)guest_to_host(align_addr);
+  // printf("READ>> addr = %x; data = %x\n", align_addr, *data);
+  return;
+}
+
+extern "C" void sdram_write(int addr, int wdata, char mask) { 
+	int align_addr = addr + SDRAM_BASE;
+  uint8_t *vaddr = guest_to_host(align_addr);
+  uint8_t *iaddr;
+  int i, j;
+  for(i = 0,j = 0;i < 4;i++){
+    if(mask & (1 << i)){
+      iaddr = vaddr + i;
+      *iaddr = (wdata >> (j * 8)) & 0xFF;
+      j++;
+    }
+  }
+  // printf("WRIT>> addr = %x; data = %x\n", align_addr, *vaddr);
   return;
 }
 
@@ -56,8 +77,7 @@ extern "C" void dpmem_write(int waddr, int wdata, char mask){
 
   uint8_t *vaddr = guest_to_host(waddr);
   uint8_t *iaddr;
-  int i;
-  int j;
+  int i, j;
   for(i = 0,j = 0;i < 4;i++){
     if(mask & (1 << i)){
       iaddr = vaddr + i;

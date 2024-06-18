@@ -12,10 +12,11 @@ CFLAGS    += -fdata-sections -ffunction-sections
 LDFLAGS   += -T $(AM_HOME)/scripts/ysyxlinker.ld \
 						 --defsym=_pmem_start=0x30000000 \
 						 --defsym=_entry_offset=0x0 \
-						 --defsym=_sram_start=0x0f000000
+						 --defsym=_sram_start=0x0f000000 \
+						 --defsym=_sdram_start=0xa0000000
 #  --defsym=_pmem_start=0x80000000 --defsym=_entry_offset=0x0
 LDFLAGS   += --gc-sections -e _start
-LDFLAGS   += --print-map
+# LDFLAGS   += --print-map
 
 NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
 NPCFLAGS += -e $(IMAGE).elf

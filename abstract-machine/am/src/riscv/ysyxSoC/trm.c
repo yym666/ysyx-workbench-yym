@@ -37,7 +37,7 @@ Area heap = RANGE(&_heap_start, PMEM_END);
 static const char mainargs[] = MAINARGS;
 
 void bootloader(){
-    extern char _erodata, _data, _edata, _bss_start, _bss_end;//, _stack_top;
+    extern char _erodata, _data, _edata, _bss_start, _bss_end;
     char *src = &_erodata;
     char *dst = &_data;
     while (dst < &_edata) *dst++ = *src++;

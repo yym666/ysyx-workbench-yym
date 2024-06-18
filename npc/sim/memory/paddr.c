@@ -28,16 +28,20 @@
 // #endif
 
 static uint8_t *pmem = NULL;
+static uint8_t *sdram = NULL;
 static uint8_t *flash = NULL;
 
 // static inline bool in_pmem(paddr_t addr) { return addr - RESET_VECTOR < 0xfffffff; }
 // static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
 // static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
 static inline bool in_flash(paddr_t addr) { return addr - FLASH_BASE < FLASH_SIZE; }
+static inline bool in_sdram(paddr_t addr) { return addr - SDRAM_BASE < SDRAM_SIZE; }
 
 uint8_t* guest_to_host(paddr_t paddr) {
 	if(in_flash(paddr))
 		return flash + (paddr - FLASH_BASE);
+	else if(in_sdram(paddr))
+		return sdram + (paddr - SDRAM_BASE);
 	else if(in_pmem(paddr))
 		return pmem + (paddr - RESET_VECTOR);
 	else{
@@ -99,6 +103,12 @@ void init_flash() {
 	memcpy(flash , flash_test , sizeof(flash_test));
 	if(flash == NULL) assert(0);
 	Log("flash area [%#x, %#x]",FLASH_BASE, FLASH_BASE + FLASH_SIZE);
+}
+
+void init_sdram() {
+	sdram = (uint8_t *)malloc(0x1fffffff * sizeof(uint8_t));
+	if(sdram == NULL) assert(0);
+	Log("sdram area [%#x, %#x]", SDRAM_BASE, SDRAM_BASE + SDRAM_SIZE);
 }
 
 word_t paddr_read(paddr_t addr, int len) {

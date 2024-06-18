@@ -29,11 +29,13 @@ static uint8_t *mrom = NULL;
 static uint8_t *sram = NULL;
 static uint8_t *uart = NULL;
 static uint8_t *flash = NULL;
+static uint8_t *sdram = NULL;
 
 static inline bool in_mrom(paddr_t addr) { return addr - MROM_BASE < MROM_SIZE; }
 static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; }
 static inline bool in_uart(paddr_t addr) { return addr - UART_BASE < UART_SIZE; }
 static inline bool in_flash(paddr_t addr) { return addr - FLASH_BASE < FLASH_SIZE; }
+static inline bool in_sdram(paddr_t addr) { return addr - SDRAM_BASE < SDRAM_SIZE; }
 
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
@@ -48,6 +50,8 @@ uint8_t* guest_to_host(paddr_t paddr) {
       ret = uart + paddr - UART_BASE;
     else if(in_flash(paddr))
       ret = flash + paddr - FLASH_BASE;
+    else if(in_sdram(paddr))
+      ret = sdram + paddr - SDRAM_BASE;
     else if(in_mrom(paddr))
       ret = mrom + paddr - MROM_BASE;
     else if(in_sram(paddr))
@@ -88,8 +92,15 @@ void init_mrom() {
 void init_flash() {
   flash = malloc(0xfff);
   assert(flash);
-  memset(flash, 0, FLASH_SIZE);
+  memset(flash, 0, 0xfff);
   Log("flash area [" FMT_PADDR ", " FMT_PADDR "]", FLASH_BASE, MROM_BASE + FLASH_SIZE);
+}
+
+void init_sdram() {
+  sdram = malloc(0x20000000);
+  assert(sdram);
+  memset(sdram, 0, SDRAM_SIZE);
+  Log("sdram area [" FMT_PADDR ", " FMT_PADDR "]", SDRAM_BASE, SDRAM_BASE + SDRAM_SIZE);
 }
 
 void init_sram() {

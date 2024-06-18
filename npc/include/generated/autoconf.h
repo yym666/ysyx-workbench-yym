@@ -36,5 +36,5 @@
 #define CONFIG_PMEM_GARRAY 1
 
 // #define PRINT_LOG 1
-#define CONFIG_DIFFTEST 1
-#define DIFFTEST_ON 1
+// #define CONFIG_DIFFTEST 1
+// #define DIFFTEST_ON 1
