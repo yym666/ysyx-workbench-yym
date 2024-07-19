@@ -18,9 +18,9 @@ LDFLAGS   += -T $(AM_HOME)/scripts/ysyxlinker.ld \
 LDFLAGS   += --gc-sections -e _start
 LDFLAGS   += --print-map
 
-NPCFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
-NPCFLAGS += -e $(IMAGE).elf
-# NPCFLAGS += -b
+NEMUFLAGS += -l $(shell dirname $(IMAGE).elf)/npc-log.txt
+NEMUFLAGS += -e $(IMAGE).elf
+# NEMUFLAGS += -b
 
 CFLAGS += -DMAINARGS=\"$(mainargs)\"
 .PHONY: $(AM_HOME)/am/src/riscv/ysyxSoC/trm.c
@@ -31,7 +31,7 @@ image: $(IMAGE).elf
 	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) run ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) run ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin
 
 gdb: image
-	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) gdb ARGS="$(NPCFLAGS)" IMG=$(IMAGE).bin
+	$(MAKE) -C $(NEMU_HOME) ISA=$(ISA) gdb ARGS="$(NEMUFLAGS)" IMG=$(IMAGE).bin

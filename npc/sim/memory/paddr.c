@@ -38,17 +38,18 @@ static inline bool in_flash(paddr_t addr) { return addr - FLASH_BASE < FLASH_SIZ
 static inline bool in_sdram(paddr_t addr) { return addr - SDRAM_BASE < SDRAM_SIZE; }
 
 uint8_t* guest_to_host(paddr_t paddr) {
-	if(in_flash(paddr))
+	if(in_flash(paddr)){
 		return flash + (paddr - FLASH_BASE);
+  }
 	else if(in_sdram(paddr))
 		return sdram + (paddr - SDRAM_BASE);
-	else if(in_pmem(paddr))
-		return pmem + (paddr - RESET_VECTOR);
+	// else if(in_pmem(paddr))
+	// 	return pmem + (paddr - RESET_VECTOR);
+  
 	else{
     printf("paddr: %x\n", paddr);
 		assert(0);
 	}
-    return pmem + paddr - CONFIG_MBASE; 
 }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
@@ -74,39 +75,40 @@ static void out_of_bound(paddr_t addr) {
 //   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
 //   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 // }
+
 static const uint32_t img [] = {
-  0x00000297,  // auipc t0,0
+  0x00000297,  // auipc t0,0       
   0x00028823,  // sb  zero,16(t0)
   0x0102c503,  // lbu a0,16(t0)
   0x00100073,  // ebreak (used as npc_trap)
   0xdeadbeef,  // some data
 };
 
-static const uint32_t flash_test [] = {
-  0xffffffff,  // auipc t0,0
-  0xffffffff,  // sb  zero,16(t0)
-  0xffffffff,  // lbu a0,16(t0)
-  0xffffffff,  // ebreak (used as npc_trap)
-  0xffffffff,  // some data
-};
-
-void init_mem(){ 
-  int siz = 0x7fffffff;
-	pmem = (uint8_t *)malloc(siz * sizeof(uint8_t));
-	memcpy(pmem , img , sizeof(img));
-	if(pmem == NULL){exit(0);}
-	Log("npc physical mrom area [%#x, %#lx]", RESET_VECTOR, RESET_VECTOR + siz * sizeof(uint8_t));
+void display_flash(){
+  for (int i = 0; i < 888; i+=4){
+    printf("%08x : %02x %02x %02x %02x\n", 0x30000000 + i, flash[i+3], flash[i+2], flash[i+1], flash[i]);
+  }
 }
+
+// void init_mem(){ 
+//   int siz = 0x7fffffff;
+// 	pmem = (uint8_t *)malloc(siz * sizeof(uint8_t));
+// 	memcpy(pmem , img , sizeof(img));
+// 	if(pmem == NULL){exit(0);}
+// 	Log("npc physical mrom area [%#x, %#lx]", RESET_VECTOR, RESET_VECTOR + siz * sizeof(uint8_t));
+// }
 
 void init_flash() {
 	flash = (uint8_t *)malloc(0xfffffff * sizeof(uint8_t));
-	memcpy(flash , flash_test , sizeof(flash_test));
+	// memset(flash , 0, sizeof(flash));
+  memcpy(flash , img , sizeof(flash));
 	if(flash == NULL) assert(0);
 	Log("flash area [%#x, %#x]",FLASH_BASE, FLASH_BASE + FLASH_SIZE);
 }
 
 void init_sdram() {
 	sdram = (uint8_t *)malloc(0x1fffffff * sizeof(uint8_t));
+	memset(sdram , 0, sizeof(sdram));
 	if(sdram == NULL) assert(0);
 	Log("sdram area [%#x, %#x]", SDRAM_BASE, SDRAM_BASE + SDRAM_SIZE);
 }

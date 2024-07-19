@@ -11,6 +11,7 @@ bool is_skip_ref = false;
 
 bool checkregs(CPU_state *ref_r, vaddr_t pc);
 void diff_print_regs(CPU_state *ref_r, vaddr_t pc);
+void isa_reg_display();
 
 #define __EXPORT __attribute__((visibility("default")))
 
@@ -24,6 +25,7 @@ void (*ref_difftest_memcpy)(uint64_t addr, void *buf, size_t n, bool direction) 
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
 void (*ref_difftest_exec)(uint64_t n) = NULL;
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
+// void (*ref_difftest_print)() = NULL;
 bool (*ref_difftest_skip)() = NULL;
 
 static int skip_dut_nr_inst = 0;
@@ -37,12 +39,16 @@ void init_difftest(char *ref_so_file, long img_size, int port)
 {
     assert(ref_so_file != NULL);
 
+    printf("out == %s\n", ref_so_file);
     void *handle;
     handle = dlopen(ref_so_file, RTLD_LAZY);
     assert(handle);
 
     ref_difftest_memcpy = (void (*)(uint64_t addr, void *buf, size_t n, bool direction))dlsym(handle, "difftest_memcpy");
     assert(ref_difftest_memcpy);
+
+    // ref_difftest_print = (void (*)())dlsym(handle, "difftest_print");
+    // assert(ref_difftest_print);
 
     ref_difftest_regcpy = (void (*)(void *dut, bool direction))dlsym(handle, "difftest_regcpy");
     assert(ref_difftest_regcpy);
@@ -61,6 +67,7 @@ void init_difftest(char *ref_so_file, long img_size, int port)
 
   ref_difftest_init(port);
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+  // ref_difftest_print();
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 

@@ -19,7 +19,8 @@
 
 void init_rand();
 void init_log(const char *log_file);
-void init_mem();
+// void init_mem();
+void display_flash();
 void init_flash();
 void init_sdram();
 void init_difftest(char *ref_so_file, long img_size, int port);
@@ -127,8 +128,7 @@ void init_monitor(int argc, char *argv[]) {
   init_log(log_file);
 
   /* Initialize memory. */
-  init_mem();
-
+  // init_mem();
   init_flash();
 
   init_sdram();
@@ -140,6 +140,7 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img();
+  display_flash();
 
   printf("diff_so: %s\n", diff_so_file);
   /* Initialize differential testing. */

@@ -22,29 +22,29 @@
 #define UART_LS_EI	7	// Error indicator
 
 extern char _heap_start;
+extern char _sdram_start;
 int main(const char *args);
 
-extern char _pmem_start;
-#define PMEM_SIZE (128 * 1024 * 1024)
-#define PMEM_END  ((uintptr_t)&_pmem_start + PMEM_SIZE)
+// extern char _pmem_start;
+#define SDRAM_SIZE (8192 * 512)
+#define SDRAM_END  ((uintptr_t)&_sdram_start + SDRAM_SIZE)
 
 # define npc_trap(code) asm volatile("mv a0, %0; ebreak" : :"r"(code))
 
-Area heap = RANGE(&_heap_start, PMEM_END);
+Area heap = RANGE(&_heap_start, SDRAM_END);
 #ifndef MAINARGS
 #define MAINARGS ""
 #endif
 static const char mainargs[] = MAINARGS;
 
 void bootloader(){
-    extern char _erodata, _data, _edata, _bss_start, _bss_end;
-    char *src = &_erodata;
+    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
+    char *src = &_cpy_begin;
     char *dst = &_data;
+    
     while (dst < &_edata) *dst++ = *src++;
-    char *bst = &_bss_start;
-    while (bst < &_bss_end) {
-      *bst++ = 0;
-    }
+    dst = &_bss_start;
+    while (dst < &_bss_end) *dst++ = 0;
 }
 
 void uart_init(int16_t rate){
@@ -53,6 +53,7 @@ void uart_init(int16_t rate){
   outb(UART_REG_DL1, (uint8_t)rate);
   outb(UART_REG_LC, 0b00000011);
 }
+
 void putch(char ch) {
   uint8_t get_LSR,  get_TFE;
   do {

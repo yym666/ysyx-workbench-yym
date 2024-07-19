@@ -66,7 +66,7 @@ static void restart() {
   /* The zero register is always 0. */
   cpu.gpr[0] = 0;
   cpu.csr.mstatus = 0x00001800;
-  //q top->rootp->TOP__DOT__CSR__DOT__csrs_ext__DOT__Memory[1] = 0x00001800;
+  top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__CSR__DOT__csrs_ext__DOT__Memory[1] = 0x00001800;
 //gpr = general purpose register
 }
 

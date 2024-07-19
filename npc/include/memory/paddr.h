@@ -27,7 +27,7 @@
 #define MROM_SIZE 0xfff 
 
 #define SRAM_BASE 0x0f000000
-#define SRAM_SIZE 0x1fff
+#define SRAM_SIZE 0xffffff
 
 #define UART_BASE 0x10000000
 #define UART_SIZE 0xfff

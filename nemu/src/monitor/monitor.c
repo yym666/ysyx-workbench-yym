@@ -19,6 +19,9 @@
 void init_rand();
 void init_log(const char *log_file);
 void init_mem();
+void display_flash();
+void init_flash();
+void init_sdram();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
 void init_sdb();
@@ -66,7 +69,10 @@ static long load_img() {
   Log("The image is %s, size = %ld", img_file, size);
 
   fseek(fp, 0, SEEK_SET);
+  printf("is1 = %hhn\n", guest_to_host(RESET_VECTOR));
+  printf("is2 = %x\n", RESET_VECTOR);
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
+  printf("imgf = %d\n", ret);
   assert(ret == 1);
 
   fclose(fp);
@@ -119,17 +125,19 @@ void init_monitor(int argc, char *argv[]) {
   init_log(log_file);
 
   /* Initialize memory. */
-  init_mem();
+  // init_mem();
+  // init_flash();
+  // init_sdram();
 
   /* Initialize devices. */
   IFDEF(CONFIG_DEVICE, init_device());
-
   /* Perform ISA dependent initialization. */
   init_isa();
 
   /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img();
 
+  display_flash();
   /* Initialize differential testing. */
   init_difftest(diff_so_file, img_size, difftest_port);
 

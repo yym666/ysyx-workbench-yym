@@ -51,7 +51,7 @@ class IDU extends Module {
 
     io.rs1_addr := io.in.bits.inst(19, 15)
     io.rs2_addr := io.in.bits.inst(24, 20)
-    io.out.bits.rd_addr := io.in.bits.inst(11,  7)
+    io.out.bits.rd_addr := io.in.bits.inst(11, 7)
 
     val imm_i       = io.in.bits.inst(31, 20)
     val imm_i_sext  = Cat(Fill(20, imm_i(11)), imm_i)

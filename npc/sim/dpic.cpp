@@ -5,38 +5,62 @@
 #include <isa.h>
 extern bool is_skip_ref;
 
-#define SERIAL_PORT 0xa00003f8
-#define RTC_ADDR    0xa0000048
+// #define SERIAL_PORT 0xa00003f8
+// #define RTC_ADDR    0xa0000048
 
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 extern "C" void flash_read(int addr, int *data) { 
-	int align_addr = addr + FLASH_BASE;
+  int cha = addr % 4;
+	int align_addr = (addr + FLASH_BASE - cha);
 	*data = *(int *)guest_to_host(align_addr);
+  // printf("flash: %08x %08x\n", addr, *data);
   // assert(*data != 0);
   return;
 }
 
 extern "C" void sdram_read(int addr, int *data) { 
-	int align_addr = addr + SDRAM_BASE;
+  // printf("rd addr = %x\n", addr);
+  int cha = addr % 4;
+	int align_addr = addr + SDRAM_BASE - cha;
 	*data = *(int *)guest_to_host(align_addr);
-  // printf("READ>> addr = %x; data = %x\n", align_addr, *data);
+  // printf("sdram_rd: %08x %08x\n", align_addr, *data);
   return;
 }
 
 extern "C" void sdram_write(int addr, int wdata, char mask) { 
-	int align_addr = addr + SDRAM_BASE;
-  uint8_t *vaddr = guest_to_host(align_addr);
-  uint8_t *iaddr;
-  int i, j;
-  for(i = 0,j = 0;i < 4;i++){
-    if(mask & (1 << i)){
-      iaddr = vaddr + i;
-      *iaddr = (wdata >> (j * 8)) & 0xFF;
-      j++;
-    }
+  // printf("wr addr = %x\n", addr);
+  int cha = addr % 4;
+	int align_addr = addr + SDRAM_BASE - cha;
+  uint8_t *paddr = guest_to_host(align_addr);
+  // printf("sdram_wr: %08x %08x %08x\n", align_addr, wdata, mask);
+  uint8_t *caddr;
+  if (mask & 1) {
+    *paddr = wdata & 0xFF;
   }
-  // printf("WRIT>> addr = %x; data = %x\n", align_addr, *vaddr);
+  if (mask & 2) {
+    caddr = paddr + 1;
+    *caddr = (wdata & 0xFF00) >> 8;
+  }
+  if (mask & 4) {
+    caddr = paddr + 2;
+    *caddr = (wdata & 0xFF0000) >> 16;
+  }
+  if (mask & 8) {
+    caddr = paddr + 3;
+    *caddr = (wdata & 0xFF000000) >> 24;
+  }
+  // uint8_t *iaddr;
+  // int i, j;
+  // for(i = 0,j = 0;i < 4;i++){
+  //   if(mask & (1 << i)){
+  //     iaddr = vaddr + i;
+  //     *iaddr = (wdata >> (j * 8)) & 0xFF;
+  //     j++;
+  //   }
+  // }
+  // int *outaddr = (int *)guest_to_host(align_addr);
+  // printf("ans = %08x\n", *outaddr);
   return;
 }
 
@@ -51,29 +75,29 @@ extern "C" void diff_skip(){
 }
 
 extern "C" uint32_t dpmem_read(uint32_t addr){
-    if(!((addr >= 0x80000000 && addr <= 0x87ffffff) || 
-         (addr == RTC_ADDR) || (addr == RTC_ADDR + 4))) 
+  if(!((addr >= 0x80000000 && addr <= 0x87ffffff)))// || 
+        //  (addr == RTC_ADDR) || (addr == RTC_ADDR + 4))) 
 		return 0;
-	if(addr == RTC_ADDR || addr == RTC_ADDR + 4)
-		is_skip_ref = true;
-    if (addr == 0xa0000048) {return (word_t)get_time();}
-    if (addr == 0xa000004c) {return get_time() << 32;}
-    uint32_t *paddr = (uint32_t *)guest_to_host(addr);
-    return *paddr;
+	// if(addr == RTC_ADDR || addr == RTC_ADDR + 4)
+	// 	is_skip_ref = true;
+  // if (addr == 0xa0000048) {return (word_t)get_time();}
+  // if (addr == 0xa000004c) {return get_time() << 32;}
+  uint32_t *paddr = (uint32_t *)guest_to_host(addr);
+  return *paddr;
 
-    assert(0);
+  assert(0);
 }
 
 extern "C" void dpmem_write(int waddr, int wdata, char mask){
-  if(!((waddr >= 0x80000000 && waddr <= 0x87ffffff) || (waddr == SERIAL_PORT))) 
+  if(!((waddr >= 0x80000000 && waddr <= 0x87ffffff)))// || (waddr == SERIAL_PORT))) 
 		return;
-	if(waddr == SERIAL_PORT){
-		is_skip_ref = true;
-	}
-  if(waddr == SERIAL_PORT) {
-      printf("%c", wdata);
-      return;
-  }
+	// if(waddr == SERIAL_PORT){
+	// 	is_skip_ref = true;
+	// }
+  // if(waddr == SERIAL_PORT) {
+  //     printf("%c", wdata);
+  //     return;
+  // }
 
   uint8_t *vaddr = guest_to_host(waddr);
   uint8_t *iaddr;
