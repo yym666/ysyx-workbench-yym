@@ -26,7 +26,7 @@ extern char _sdram_start;
 int main(const char *args);
 
 // extern char _pmem_start;
-#define SDRAM_SIZE (8192 * 512)
+#define SDRAM_SIZE 0x800000
 #define SDRAM_END  ((uintptr_t)&_sdram_start + SDRAM_SIZE)
 
 # define npc_trap(code) asm volatile("mv a0, %0; ebreak" : :"r"(code))
@@ -38,10 +38,13 @@ Area heap = RANGE(&_heap_start, SDRAM_END);
 static const char mainargs[] = MAINARGS;
 
 void bootloader(){
-    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
-    char *src = &_cpy_begin;
-    char *dst = &_data;
-    
+    extern char _cpy_beginex, _cpy_begin, _data, __fsymtab_start, __am_apps_data_end, _edata, _bss_start, _bss_end;
+    char *src = &_cpy_beginex;
+    char *dst = &__fsymtab_start;
+    while (dst < &__am_apps_data_end) *dst++ = *src++;
+
+    src = &_cpy_begin;
+    dst = &_data;
     while (dst < &_edata) *dst++ = *src++;
     dst = &_bss_start;
     while (dst < &_bss_end) *dst++ = 0;
