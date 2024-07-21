@@ -119,7 +119,7 @@ run: $(BIN) $(DIFF_REF_SO)
 test:
 	mill -i __.test
 
-verilog: $(SRCV_GEN)
+verilog:
 	$(call git_commit, "generate verilog")
 	mkdir -p $(BUILD_DIR)
 	mill -i __.test.runMain Elaborate $(BUILD_DIR)

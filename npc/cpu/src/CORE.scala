@@ -30,27 +30,15 @@ class CORE extends Module {
     val GPR = Module(new GPR())
     val CSR = Module(new CSR())
     val TRP = Module(new TRP())
-    // val ARB = Module(new ARB())
-    // val IDM = Module(new IDM())
-    // val XBR = Module(new XBR())
-    // val UART  = Module(new UART())
-    // val CLINT = Module(new CLINT())
+    val ICH = Module(new ICH())
 
-    // IDM.io.clock    := clock
-    // IDM.io.reset    := reset
-    // UART.io.clock   := clock
-    // UART.io.reset   := reset
-    // CLINT.io.clock  := clock
-    // CLINT.io.reset  := reset
+    // IFU.io.imem :<>= io.imem
+    IFU.io.addr     <> ICH.io.addr
+    IFU.io.addr_vl  <> ICH.io.addr_vl
+    IFU.io.inst     <> ICH.io.inst
+    IFU.io.inst_rd  <> ICH.io.inst_rd
 
-    // XBR.io.arb  <> ARB.io.mem
-    // ARB.io.imem <> IFU.io.imem
-    // ARB.io.dmem <> LSU.io.dmem
-    // XBR.io.sram <> IDM.io.axi
-    // XBR.io.uart <> UART.io.axi
-    // XBR.io.clint<> CLINT.io.axi
-
-    IFU.io.imem :<>= io.imem
+    ICH.io.imem :<>= io.imem
     LSU.io.dmem :<>= io.dmem
     IFU.io.out <> IDU.io.in
     IDU.io.out <> EXU.io.in

@@ -2,6 +2,7 @@
 #include <klib-macros.h>
 #include <riscv/riscv.h>
 // #include <ysyx.h>
+#define CONFIG_RTT 1
 
 #define UART_BASE 0x10000000L
 #define UART_TX   0x0
@@ -38,11 +39,14 @@ Area heap = RANGE(&_heap_start, SDRAM_END);
 static const char mainargs[] = MAINARGS;
 
 void bootloader(){
-    extern char _cpy_beginex, _cpy_begin, _data, __fsymtab_start, __am_apps_data_end, _edata, _bss_start, _bss_end;
-    char *src = &_cpy_beginex;
-    char *dst = &__fsymtab_start;
+    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
+    char *src; char *dst;
+#ifdef CONFIG_RTT
+    extern char _cpy_beginex, __fsymtab_start, __am_apps_data_end;
+    src = &_cpy_beginex;
+    dst = &__fsymtab_start;
     while (dst < &__am_apps_data_end) *dst++ = *src++;
-
+#endif
     src = &_cpy_begin;
     dst = &_data;
     while (dst < &_edata) *dst++ = *src++;
