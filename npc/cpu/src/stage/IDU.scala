@@ -12,7 +12,6 @@ class IDU extends Module {
         val in  = Flipped(Decoupled(new MessageIF2ID))
         val out =         Decoupled(new MessageID2EX)
 
-        // val inst        =  Input(UInt(ADDR_WIDTH.W))
         //from gpr
         val rs1_data    =  Input(UInt(DATA_WIDTH.W))
         val rs2_data    =  Input(UInt(DATA_WIDTH.W))
@@ -29,22 +28,25 @@ class IDU extends Module {
         
         val get_mepc    =  Input(UInt(DATA_WIDTH.W))
         val get_mtvec   =  Input(UInt(DATA_WIDTH.W))
-        // val br_taken    = Output(Bool())
-        // val br_target   = Output(UInt(ADDR_WIDTH.W))
         val halt        = Output(Bool())
 
         val idu_done    = Output(Bool())
+
+        val idu_br_taken  = Output(Bool())
+        val idu_br_target = Output(UInt(DATA_WIDTH.W))
+
+        val rd_from_ls  = Input(UInt(DATA_WIDTH.W))
+        val rd_from_wb  = Input(UInt(DATA_WIDTH.W))
+        val rd_from_ex  = Input(UInt(DATA_WIDTH.W))
     })
 
     val wait_if2id :: wait_id2ex :: Nil = Enum(2)
     val IDUstate = RegInit(wait_if2id)
     IDUstate := MuxLookup(IDUstate, wait_if2id) (Seq(
         wait_if2id  -> Mux(io.in.valid , wait_id2ex, wait_if2id),
-        wait_id2ex  -> Mux(io.out.ready, wait_if2id, wait_id2ex)
+        wait_id2ex  -> Mux(io.out.valid & io.out.ready, wait_if2id, wait_id2ex)
     ))
-    io.out.valid := Mux(IDUstate === wait_if2id, 0.U, 1.U)
-    io.in.ready  := Mux(IDUstate === wait_id2ex, 0.U, 1.U)
-    
+
     io.idu_done := (IDUstate === wait_if2id)
     io.out.bits.pc      := io.in.bits.pc
     io.out.bits.inst    := io.in.bits.inst
@@ -52,7 +54,7 @@ class IDU extends Module {
     io.rs1_addr := io.in.bits.inst(19, 15)
     io.rs2_addr := io.in.bits.inst(24, 20)
     io.out.bits.rd_addr := io.in.bits.inst(11, 7)
-
+    
     val imm_i       = io.in.bits.inst(31, 20)
     val imm_i_sext  = Cat(Fill(20, imm_i(11)), imm_i)
     val imm_u       = io.in.bits.inst(31, 12)
@@ -127,6 +129,17 @@ class IDU extends Module {
         )
     )
     val excode_tmp :: op1 :: op2 :: mem_wen :: wb_msk :: reg_wen :: csr_opt :: inst_code_tmp :: Nil = decode
+
+    val rs1_conf = ((io.rs1_addr === io.rd_from_ex) || 
+                    (io.rs1_addr === io.rd_from_wb) || 
+                    (io.rs1_addr === io.rd_from_ls)) && (OP1_RS1 === op1)
+    val rs2_conf = ((io.rs2_addr === io.rd_from_ex) || 
+                    (io.rs2_addr === io.rd_from_wb) || 
+                    (io.rs2_addr === io.rd_from_ls)) && (OP2_RS2 === op2 || MEM_ST === mem_wen)
+    val stall = (rs1_conf || rs2_conf)
+    io.out.valid := Mux(IDUstate === wait_if2id, 0.U, Mux(stall, 0.U, 1.U))
+    io.in.ready  := Mux(IDUstate === wait_id2ex, 0.U, Mux(stall, 0.U, 1.U))
+
     io.out.bits.data1 := MuxCase(
         0.U(DATA_WIDTH.W),
         Seq(
@@ -145,7 +158,7 @@ class IDU extends Module {
         )
     )
 
-    io.out.bits.br_taken := MuxCase(
+    io.out.bits.br_taken := (MuxCase(
         false.B,
         Seq(
             (excode_tmp === BRC_BEQ)  -> (io.out.bits.data1 === io.out.bits.data2),
@@ -158,7 +171,7 @@ class IDU extends Module {
             (excode_tmp === ALU_JAL)  -> (true.B),
             (excode_tmp === FORCE_JUMP) -> (true.B)
         )
-    )
+    )) & (IDUstate === wait_id2ex) & (stall === false.B)
     io.out.bits.br_target:= MuxCase(
         io.in.bits.pc + imm_b_sext,
         Seq(
@@ -204,4 +217,7 @@ class IDU extends Module {
     io.out.bits.excode   := excode_tmp
     io.out.bits.inst_code:= inst_code_tmp
     io.halt := Mux((inst_code_tmp === isEBREAK), true.B, false.B)
+
+    io.idu_br_taken  := io.out.bits.br_taken
+    io.idu_br_target := io.out.bits.br_target
 }

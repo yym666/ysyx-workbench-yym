@@ -140,7 +140,7 @@ void init_monitor(int argc, char *argv[]) {
 
   /* Load the image to memory. This will overwrite the built-in image. */
   long img_size = load_img();
-  display_flash();
+  // display_flash();
 
   printf("diff_so: %s\n", diff_so_file);
   /* Initialize differential testing. */

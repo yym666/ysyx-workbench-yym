@@ -29,7 +29,10 @@
 #define SERIAL_PORT 0xa00003f8
 #define RTC_ADDR    0xa0000048
 
+#define WBSTATE top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__WBU__DOT__WBUstate
+#define IFSTATE top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__IFU__DOT__IFUstate
 #define TOPPC  top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__IFU__DOT__pc_reg
+#define WBPC   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__WBU_io_in_bits_r_pc_nxt
 #define TOPREG top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__CORE__DOT__GPR__DOT__regs_ext__DOT__Memory
 
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
@@ -48,6 +51,7 @@ uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 static bool halt = false;
+int do_diff = 0;
 
 void device_update();
 void watchpoint();
@@ -79,7 +83,7 @@ void RegUpdate(){
   for (int i = 0; i < 32; ++i){
     cpu.gpr[i] = TOPREG[i];
   }
-  cpu.pc = TOPPC;
+  cpu.pc = WBPC;
 }
 
 void ftrace_jal(Decode *s, word_t rd){
@@ -105,7 +109,6 @@ void ftrace_jalr(Decode *s, word_t rd){
 int last_pc = 0;
 
 static void exec_once(Decode *s, vaddr_t pc) {
-  s->pc = pc, s->snpc = pc;
   bool first_skip = false; 
   if (TOPPC == 0x30000000 || TOPPC == 0x2ffffffc) first_skip = true;
   else first_skip = false;
@@ -123,14 +126,16 @@ static void exec_once(Decode *s, vaddr_t pc) {
   // if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
 
   single_cycle();
-
+// if (WBSTATE == 1) printf("pc = %08x\n", WBPC);
 #ifdef CONFIG_DIFFTEST
   RegUpdate();
-  if (last_pc != TOPPC && !first_skip) {
-    last_pc = TOPPC;
-    s->pc   = TOPPC;
-    trace_and_difftest(s, TOPPC);
+  // if (last_pc != TOPPC && !first_skip) {
+  if (do_diff == 1){
+    s->pc = WBPC;
+    trace_and_difftest(s, WBPC);
   }
+  if (WBSTATE == 1) do_diff = 1;
+  else do_diff = 0;
 #endif
   RegUpdate();
   if (halt) NPCTRAP(TOPPC, cpu.gpr[10]);

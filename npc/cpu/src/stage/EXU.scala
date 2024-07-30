@@ -12,7 +12,9 @@ class EXU extends Module {
         val in  =   Flipped(Decoupled(new MessageID2EX))
         val out =           Decoupled(new MessageEX2LS)
 
-        val exu_done    = Output(Bool())
+        val isST = Output(Bool())
+        val isLD = Output(Bool())
+        val rd_from_ex  = Output(UInt(DATA_WIDTH.W))
     })
     // io.in.ready := 1.U 
     val wait_id2ex :: wait_ex2ls :: Nil = Enum(2)
@@ -23,7 +25,6 @@ class EXU extends Module {
     ))
     io.out.valid := Mux(EXUstate === wait_id2ex, 0.U, 1.U)
     io.in.ready  := Mux(EXUstate === wait_ex2ls, 0.U, 1.U)
-    io.exu_done  := (EXUstate === wait_id2ex)
 
     io.out.bits.pc      := io.in.bits.pc
     io.out.bits.inst    := io.in.bits.inst
@@ -38,6 +39,8 @@ class EXU extends Module {
 
     io.out.bits.br_taken  := io.in.bits.br_taken
     io.out.bits.br_target := io.in.bits.br_target
+
+    io.rd_from_ex := Mux(io.out.valid, io.out.bits.rd_addr, 65.U)
 
     io.out.bits.alu_res  := MuxCase(
         0.U(DATA_WIDTH.W),
@@ -73,4 +76,8 @@ class EXU extends Module {
             (io.in.bits.mem_opt === MEM_LD) -> (io.out.bits.alu_res)
         )
     )
+
+    io.isST  := (io.out.bits.mem_opt === MEM_ST) 
+    io.isLD  := (io.out.bits.mem_opt === MEM_LD) 
+    // io.mema  := io.out.bits.mem_addr
 }

@@ -32,30 +32,83 @@ class CORE extends Module {
     val TRP = Module(new TRP())
     val ICH = Module(new ICH())
 
+    val diffpc = dontTouch(Wire(UInt(32.W)))
+    diffpc := WBU.io.pc_nxt
+
     // IFU.io.imem :<>= io.imem
     IFU.io.addr     <> ICH.io.addr
     IFU.io.addr_vl  <> ICH.io.addr_vl
     IFU.io.inst     <> ICH.io.inst
     IFU.io.inst_rd  <> ICH.io.inst_rd
 
+    IDU.io.in.bits := RegEnable(IFU.io.out.bits, IFU.io.out.valid & IDU.io.in.ready)
+    EXU.io.in.bits := RegEnable(IDU.io.out.bits, IDU.io.out.valid & EXU.io.in.ready)
+    LSU.io.in.bits := RegEnable(EXU.io.out.bits, EXU.io.out.valid & LSU.io.in.ready)
+    WBU.io.in.bits := RegEnable(LSU.io.out.bits, LSU.io.out.valid & WBU.io.in.ready)
+    
+    IFU.io.out.ready := IDU.io.in.ready
+    IDU.io.out.ready := EXU.io.in.ready
+    EXU.io.out.ready := LSU.io.in.ready
+    LSU.io.out.ready := WBU.io.in.ready
+
+    EXU.io.isST <> LSU.io.isST
+    EXU.io.isLD <> LSU.io.isLD
+
+//IDU valid
+    // when (IDU.io.idu_br_taken){
+    //     IDU.io.in.valid := false.B
+    // }.else
+    when (IDU.io.in.ready && IFU.io.out.valid){
+        IDU.io.in.valid := true.B
+    }.elsewhen (IDU.io.out.fire){
+        IDU.io.in.valid := false.B
+    }.otherwise{
+        IDU.io.in.valid := false.B
+    }
+//EXU valid
+    // when (WBU.io.br_taken){
+    //     EXU.io.in.valid := false.B
+    // }.else
+        when (EXU.io.in.ready && IDU.io.out.valid){
+        EXU.io.in.valid := true.B
+    }.elsewhen (EXU.io.out.fire){
+        EXU.io.in.valid := false.B
+    }.otherwise{
+        EXU.io.in.valid := false.B
+    }
+//LSU valid
+    // when (WBU.io.br_taken){
+    //     LSU.io.in.valid := false.B
+    // }.else
+        when (LSU.io.in.ready && EXU.io.out.valid){
+        LSU.io.in.valid := true.B
+    }.elsewhen (LSU.io.out.fire){
+        LSU.io.in.valid := false.B
+    }.otherwise{
+        LSU.io.in.valid := false.B
+    }
+//WBU valid
+    when (WBU.io.in.ready && LSU.io.out.valid){
+        WBU.io.in.valid := true.B
+    }.otherwise{
+        WBU.io.in.valid := false.B
+    }
+
+    EXU.io.rd_from_ex <> IDU.io.rd_from_ex
+    LSU.io.rd_from_ls <> IDU.io.rd_from_ls
+    WBU.io.rd_from_wb <> IDU.io.rd_from_wb
+
     ICH.io.imem :<>= io.imem
     LSU.io.dmem :<>= io.dmem
-    IFU.io.out <> IDU.io.in
-    IDU.io.out <> EXU.io.in
-    EXU.io.out <> LSU.io.in
-    LSU.io.out <> WBU.io.in
 
     //TRP
     TRP.io.clock := clock
     TRP.io.reset := reset
     TRP.io.halt := IDU.io.halt
 
-    IFU.io.idu_done  <> IDU.io.idu_done
-    IFU.io.exu_done  <> EXU.io.exu_done
-    IFU.io.lsu_done  <> LSU.io.lsu_done
     //EXU <> IFU
-    IFU.io.br_taken  <> WBU.io.br_taken
-    IFU.io.br_target <> WBU.io.br_target
+    IFU.io.br_taken <> IDU.io.idu_br_taken
+    IFU.io.br_target<> IDU.io.idu_br_target
 
     //WBU <> CSR & GPR
     CSR.io.wen      <> WBU.io.csr_we

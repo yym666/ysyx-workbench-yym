@@ -24,7 +24,7 @@ extern "C" void sdram_read(int addr, int *data) {
   int cha = addr % 4;
 	int align_addr = addr + SDRAM_BASE - cha;
 	*data = *(int *)guest_to_host(align_addr);
-  // printf("sdram_rd: %08x %08x\n", align_addr, *data);
+  // printf("sdram_rd: %08x %08x\n", addr, *data);
   return;
 }
 
@@ -33,7 +33,7 @@ extern "C" void sdram_write(int addr, int wdata, char mask) {
   int cha = addr % 4;
 	int align_addr = addr + SDRAM_BASE - cha;
   uint8_t *paddr = guest_to_host(align_addr);
-  // printf("sdram_wr: %08x %08x %08x\n", align_addr, wdata, mask);
+  // printf("sdram_wr: %08x %08x %08x\n", addr, wdata, mask);
   uint8_t *caddr;
   if (mask & 1) {
     *paddr = wdata & 0xFF;

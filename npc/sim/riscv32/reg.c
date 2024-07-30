@@ -43,7 +43,7 @@ void diff_print_regs(CPU_state *ref_r, vaddr_t pc) {
     if (cpu.gpr[i] == ref_r->gpr[i]) printf("\n");
     else printf(" ** \n");
   }
-  printf("%6s     0x%08x 0x%08x\n", "pc", cpu.pc, ref_r->pc);
+  printf("%6s     0x%08x 0x%08x\n", "pc", pc, ref_r->pc);
 }
 
 void isa_reg_display() {

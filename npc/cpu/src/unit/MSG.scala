@@ -51,6 +51,7 @@ class MessageEX2LS extends Bundle {
 
 class MessageLS2WB extends Bundle {
     val pc          = Output(UInt(ADDR_WIDTH.W))
+    val pc_nxt      = Output(UInt(ADDR_WIDTH.W))
     val inst        = Output(UInt(DATA_WIDTH.W))
     val inst_code   = Output(UInt(INS_LEN.W))
     val alu_res     = Output(UInt(DATA_WIDTH.W))

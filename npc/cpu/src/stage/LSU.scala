@@ -14,14 +14,12 @@ class LSU extends Module {
         val out=            Decoupled(new MessageLS2WB)
         val dmem =  Flipped(new AXI)
         
-        // val wdata   = Output(UInt(DATA_WIDTH.W))
-        // val wmask   = Output(UInt(8.W))
-        
-        val isST    = Output(Bool())
-        val isLD    = Output(Bool())
-        val lsu_done    = Output(Bool())
+        val isST    = Input(Bool())
+        val isLD    = Input(Bool())
+        val rd_from_ls  = Output(UInt(DATA_WIDTH.W))
     })
     io.out.bits.pc      := io.in.bits.pc
+    io.out.bits.pc_nxt  := Mux(io.in.bits.br_taken, io.in.bits.br_target, io.in.bits.pc + 4.U)
     io.out.bits.inst    := io.in.bits.inst
     io.out.bits.inst_code   := io.in.bits.inst_code
     io.out.bits.alu_res     := io.in.bits.alu_res
@@ -32,7 +30,7 @@ class LSU extends Module {
     io.out.bits.csr_waddr   := io.in.bits.csr_waddr
     io.out.bits.br_taken  := io.in.bits.br_taken
     io.out.bits.br_target := io.in.bits.br_target
-    
+
     val in_ready  = RegInit(io.in.ready)
     val out_valid = RegInit(io.out.valid)
     io.in.ready  := in_ready
@@ -58,6 +56,14 @@ class LSU extends Module {
     io.dmem.wvalid := dmem_wvalid
     io.dmem.bready := dmem_bready
 
+    // val dmem_araddr = RegInit(io.dmem.araddr)
+    // val dmem_awaddr = RegInit(io.dmem.awaddr)
+
+    io.dmem.araddr   := io.in.bits.mem_addr
+    io.dmem.awaddr   := io.in.bits.mem_addr
+    // io.dmem.araddr   := dmem_araddr//io.in.bits.mem_addr
+    // io.dmem.awaddr   := dmem_awaddr//io.in.bits.mem_addr
+
     val wait_ex2ls :: slstate1 :: slstate2 :: slstate3 :: wait_ls2wb :: Nil = Enum(5)
     val LSUstate = RegInit(wait_ex2ls)
     val NXTstate = WireDefault(wait_ex2ls)
@@ -72,18 +78,21 @@ class LSU extends Module {
         slstate3    -> Mux(io.out.ready, wait_ex2ls, slstate3)
     ))
     LSUstate := NXTstate
-    io.lsu_done  := (LSUstate === wait_ex2ls)
+    io.rd_from_ls := Mux((LSUstate === wait_ex2ls), 65.U, io.out.bits.rd_addr)
 
-    val lfsr  = RegInit(3.U(4.W))
-    lfsr := Cat(lfsr(2,0), lfsr(0) ^ lfsr(1) ^ lfsr(2))
-    val delay = RegInit(lfsr)
+    // val lfsr  = RegInit(3.U(4.W))
+    // lfsr := Cat(lfsr(2,0), lfsr(0) ^ lfsr(1) ^ lfsr(2))
+    val delay = RegInit(1.U(2.W))
+
+    val isST = (io.out.bits.mem_opt === MEM_ST) 
+    val isLD = (io.out.bits.mem_opt === MEM_LD) 
     
     switch(NXTstate){
         is(wait_ex2ls){
             in_ready    := true.B
             out_valid   := false.B
             
-            delay       := lfsr
+            delay       := 1.U
             dmem_arvalid:= false.B
             dmem_rready := false.B
             dmem_awvalid:= false.B
@@ -102,14 +111,14 @@ class LSU extends Module {
         }
         is(slstate1){
             in_ready  := false.B
-            out_valid := Mux(io.isLD, io.dmem.rvalid, io.dmem.bvalid)
+            out_valid := false.B//Mux(isLD, io.dmem.rvalid, io.dmem.bvalid)
             
             when(delay === 0.U){
-                dmem_arvalid:= Mux(io.isLD, true.B , false.B)
-                dmem_rready := Mux(io.isLD, false.B, false.B)
-                dmem_awvalid:= Mux(io.isST, true.B , false.B)
-                dmem_wvalid := Mux(io.isST, true.B , false.B)
-                dmem_bready := Mux(io.isST, false.B, false.B)
+                dmem_arvalid:= Mux(isLD, true.B , false.B)
+                dmem_rready := Mux(isLD, false.B, false.B)
+                dmem_awvalid:= Mux(isST, true.B , false.B)
+                dmem_wvalid := Mux(isST, true.B , false.B)
+                dmem_bready := Mux(isST, false.B, false.B)
             }.otherwise{
                 delay       := delay - 1.U
                 dmem_arvalid:= false.B
@@ -121,16 +130,16 @@ class LSU extends Module {
         }
         is(slstate2){
             in_ready    := false.B
-            out_valid   := Mux(io.isLD, io.dmem.rvalid, io.dmem.bvalid)
-            dmem_arvalid:= Mux(io.isLD, false.B, false.B)
-            dmem_rready := Mux(io.isLD, true.B , false.B)
-            dmem_awvalid:= Mux(io.isST, false.B, false.B)
-            dmem_wvalid := Mux(io.isST, false.B, false.B)
-            dmem_bready := Mux(io.isST, true.B , false.B)
+            out_valid   := Mux(isLD, io.dmem.rvalid, io.dmem.bvalid)
+            dmem_arvalid:= Mux(isLD, false.B, false.B)
+            dmem_rready := Mux(isLD, true.B , false.B)
+            dmem_awvalid:= Mux(isST, false.B, false.B)
+            dmem_wvalid := Mux(isST, false.B, false.B)
+            dmem_bready := Mux(isST, true.B , false.B)
         }
         is(slstate3){
             in_ready    := false.B
-            out_valid   := Mux(io.isLD, io.dmem.rvalid, io.dmem.bvalid)
+            out_valid   := Mux(isLD, io.dmem.rvalid, io.dmem.bvalid)
             dmem_arvalid:= false.B
             dmem_rready := false.B
             dmem_awvalid:= false.B
@@ -138,9 +147,6 @@ class LSU extends Module {
             dmem_bready := false.B
         }
     }
-
-    io.dmem.araddr   := io.in.bits.mem_addr
-    io.dmem.awaddr   := io.in.bits.mem_addr
     val mask_tmp= Wire(UInt(8.W))
     val shift   = Wire(UInt(32.W))
     val mem_addr_tmp = Wire(UInt(32.W))
@@ -159,20 +165,9 @@ class LSU extends Module {
     shift        := io.in.bits.mem_addr - mem_addr_tmp
     io.dmem.wstrb := mask_tmp << shift(2, 0)
     io.dmem.wdata := io.in.bits.mem_wdata << (shift(2, 0) << 3)
-    // io.dmem.wstrb := MuxCase(
-    //     0.U,
-    //     Seq(
-    //         (io.in.bits.mem_msk === LSL_1) -> MSK_1,
-    //         (io.in.bits.mem_msk === LSL_2) -> MSK_2,
-    //         (io.in.bits.mem_msk === LSL_4) -> MSK_4,
-    //         (io.in.bits.mem_msk === LSL_1U) -> MSK_1,
-    //         (io.in.bits.mem_msk === LSL_2U) -> MSK_2,
-    //         (io.in.bits.mem_msk === LSL_4U) -> MSK_4
-    //     )
-    // )
     val rdata_shif = io.dmem.rdata >> (shift(2, 0) << 3)
     val rdatareg = RegInit(UInt(DATA_WIDTH.W), 0.U)
-    rdatareg := Mux(NXTstate === slstate3, Mux(io.isLD, MuxCase(0.U, Seq(
+    rdatareg := Mux(NXTstate === slstate3, Mux(isLD, MuxCase(0.U, Seq(
                         (io.in.bits.mem_msk === LSL_1) -> Cat(Fill(24, rdata_shif( 7)), rdata_shif( 7, 0)),
                         (io.in.bits.mem_msk === LSL_2) -> Cat(Fill(16, rdata_shif(15)), rdata_shif(15, 0)),
                         (io.in.bits.mem_msk === LSL_4) -> rdata_shif,
@@ -181,6 +176,4 @@ class LSU extends Module {
                         (io.in.bits.mem_msk === LSL_4U) -> rdata_shif
                     )), 0.U), rdatareg)
     io.out.bits.mem_rdata   := rdatareg
-    io.isST  := (io.in.bits.mem_opt === MEM_ST) 
-    io.isLD  := (io.in.bits.mem_opt === MEM_LD) 
 }

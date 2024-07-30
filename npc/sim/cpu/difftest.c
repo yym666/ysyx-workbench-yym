@@ -83,6 +83,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc) {
     is_skip_ref = false;
     return;
   }
+  // printf("diff : ref=%08x  npc=%08x\n", ref_r.pc, pc);
 
   if(!checkregs(&ref_r, pc)){
     diff_print_regs(&ref_r, pc);

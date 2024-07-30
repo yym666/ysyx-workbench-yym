@@ -2,7 +2,6 @@ package bus
 
 import chisel3._
 import chisel3.util._
-// import java.awt.BufferCapabilities.FlipContents
 
 class ARB extends Module{
     val io = IO(new Bundle {
@@ -11,8 +10,8 @@ class ARB extends Module{
         val  mem = Flipped(new AXI)
     })
     //DontCare
-    io.mem.arid    := 0.U
     io.mem.arlen   := 0.U
+    io.mem.arid    := 0.U
     io.mem.arsize  := 0.U
     io.mem.arburst := 0.U
     io.mem.awid    := 0.U
@@ -37,9 +36,11 @@ class ARB extends Module{
     val imem_bresp  = RegInit(io.imem.bresp)
     val imem_bvalid = RegInit(io.imem.bvalid)
     io.imem.arready := imem_arready
-    io.imem.rdata   := imem_rdata
+    // io.imem.rdata   := imem_rdata
+    io.imem.rdata   := io.mem.rdata
     io.imem.rresp   := imem_rresp
-    io.imem.rvalid  := imem_rvalid
+    // io.imem.rvalid  := imem_rvalid
+    io.imem.rvalid  := io.mem.rvalid
     io.imem.awready := imem_awready
     io.imem.wready  := imem_wready
     io.imem.bresp   := imem_bresp
@@ -54,9 +55,11 @@ class ARB extends Module{
     val dmem_bresp  = RegInit(io.dmem.bresp)
     val dmem_bvalid = RegInit(io.dmem.bvalid)
     io.dmem.arready := dmem_arready
-    io.dmem.rdata   := dmem_rdata
+    // io.dmem.rdata   := dmem_rdata
+    io.dmem.rdata   := io.mem.rdata
     io.dmem.rresp   := dmem_rresp
-    io.dmem.rvalid  := dmem_rvalid
+    // io.dmem.rvalid  := dmem_rvalid
+    io.dmem.rvalid  := io.mem.rvalid
     io.dmem.awready := dmem_awready
     io.dmem.wready  := dmem_wready
     io.dmem.bresp   := dmem_bresp
@@ -81,130 +84,89 @@ class ARB extends Module{
     io.mem.wvalid   := mem_wvalid
     io.mem.bready   := mem_bready
 
-    val chose :: imem1 :: dmem1 :: imem2 :: dmem2 :: Nil = Enum(5)
-    val state = RegInit(chose)
-    val nextState = WireDefault(chose)
-    nextState := MuxLookup(state, chose, List(
-        chose -> MuxCase(chose, Seq(
-            ( io.imem.arvalid & imem_arready) -> imem1,
-            ((io.dmem.arvalid & dmem_arready) || (io.dmem.awvalid & dmem_awready & io.dmem.wvalid & dmem_wready)).asBool -> dmem1)),
-        imem1 -> Mux( io.mem.rready & io.mem.rvalid , imem2, imem1),
-        imem2 -> Mux(io.imem.rready & io.imem.rvalid, chose, imem2),
-        dmem1 -> Mux(( io.mem.rready & io.mem.rvalid ) | ( io.mem.bready & io.mem.bvalid ), dmem2, dmem1),
-        dmem2 -> Mux((io.dmem.rready & io.dmem.rvalid) | (io.dmem.bready & io.dmem.bvalid), chose, dmem2)
-    ))
-    state := nextState
 
-    switch(nextState){
-        is(chose){
-            DefaultMem()
-            DefaultDmem()
-            DefaultImem()
+    val rd_send :: rd_recv  :: Nil = Enum(2)
+    val RDstate     = RegInit(rd_send)
+    val RNXTstate   = WireDefault(rd_send)
+    RNXTstate := MuxLookup(RDstate, rd_send, List(
+        rd_send -> Mux(mem_arvalid && io.mem.arready, rd_recv, rd_send),
+        rd_recv -> Mux(mem_rready && io.mem.rvalid, rd_send, rd_recv)
+    ))
+    RDstate := RNXTstate
+    switch(RNXTstate){
+        is(rd_send){
+            when(io.imem.arvalid === true.B){
+                RDtoIMEM()
+                mem_arvalid := true.B
+                mem_araddr  := io.imem.araddr
+                dmem_arready:= false.B
+            }.elsewhen(io.dmem.arvalid === true.B){
+                RDtoDMEM()
+                mem_arvalid := true.B
+                mem_araddr  := io.dmem.araddr
+                imem_arready:= false.B
+            }.otherwise{
+                mem_arvalid := false.B
+                imem_arready:= false.B
+                dmem_arready:= false.B
+                mem_araddr  := 0.U
+            }
         }
-        is(imem1){
-            ConnectImem()
-            DefaultDmem()
-            dmem_arready := false.B
-            dmem_wready  := false.B
-            dmem_awready := false.B
-        }
-        is(imem2){
-            ConnectImem()
-            DefaultDmem()
+        is(rd_recv){
             mem_arvalid := false.B
-            mem_rready  := false.B
-            dmem_arready := false.B
-            dmem_wready  := false.B
-            dmem_awready := false.B
+            imem_arready:= false.B
+            dmem_arready:= false.B
+            mem_rready  := (io.imem.rready || io.dmem.rready)
         }
-        is(dmem1){
-            ConnectDmem()
-            DefaultImem()
-            imem_arready := false.B
-        }
-        is(dmem2){
-            ConnectDmem()
-            DefaultImem()
-            mem_arvalid := false.B
-            mem_rready  := false.B
+    }
+
+    val wr_init :: wr_send :: wr_recv :: Nil = Enum(3)
+    val WRstate     = RegInit(wr_init)
+    val WNXTstate   = WireDefault(wr_init)
+    WNXTstate := MuxLookup(WRstate, wr_init, List(
+        wr_init -> Mux((io.dmem.awvalid && io.dmem.awready) && (io.dmem.wvalid && io.dmem.wready), wr_send, wr_init),
+        wr_send -> Mux((io.mem.awvalid  && io.mem.awready ) && (io.mem.wvalid  && io.mem.wready ), wr_recv, wr_send),
+        wr_recv -> Mux(mem_bready && dmem_bvalid, wr_init, wr_recv)
+    ))
+    WRstate := WNXTstate
+    switch(WNXTstate){
+        is(wr_init){
+            dmem_awready:= io.mem.awready
+            dmem_wready := io.mem.wready
+            dmem_bresp  := false.B
+            dmem_bvalid := false.B
             mem_awvalid := false.B
             mem_wvalid  := false.B
-            mem_bready  := false.B
-            imem_arready:= false.B
+        }
+        is(wr_send){
+            dmem_bresp  := false.B
+            dmem_bvalid := false.B
+            mem_awvalid := io.dmem.awvalid
+            mem_awaddr  := io.dmem.awaddr
+            mem_wvalid  := io.dmem.wvalid
+            mem_wdata   := io.dmem.wdata
+            mem_wstrb   := io.dmem.wstrb
+        }
+        is(wr_recv){
+            mem_awvalid := false.B
+            mem_wvalid  := false.B
+            mem_bready  := io.dmem.bready
+            dmem_awready:= false.B
+            dmem_wready := false.B
+            dmem_bresp  := io.mem.bresp
+            dmem_bvalid := io.mem.bvalid
         }
     }
-    
-    def ConnectImem(): Unit = {
-        imem_arready := io.mem.arready
-        imem_rdata   := io.mem.rdata
-        imem_rresp   := io.mem.rresp
-        imem_rvalid  := io.mem.rvalid
-        imem_awready := io.mem.awready
-        imem_wready  := io.mem.wready
-        imem_bresp   := io.mem.bresp
-        imem_bvalid  := io.mem.bvalid
-
-        mem_araddr  := io.imem.araddr
-        mem_arvalid := io.imem.arvalid
-        mem_rready  := io.imem.rready
-        mem_awaddr  := io.imem.awaddr
-        mem_awvalid := io.imem.awvalid
-        mem_wdata   := io.imem.wdata
-        mem_wstrb   := io.imem.wstrb
-        mem_wvalid  := io.imem.wvalid
-        mem_bready  := io.imem.bready
-    
+    def RDtoIMEM(): Unit = {
+        imem_arready:= io.mem.arready
+        imem_rresp  := io.mem.rresp
+        imem_awready:= io.mem.awready
+        imem_wready := io.mem.wready
+        imem_bresp  := io.mem.bresp
+        imem_bvalid := io.mem.bvalid
     }
-    def ConnectDmem(): Unit = {
+    def RDtoDMEM(): Unit = {
         dmem_arready:= io.mem.arready
-        dmem_rdata  := io.mem.rdata
         dmem_rresp  := io.mem.rresp
-        dmem_rvalid := io.mem.rvalid
-        dmem_awready:= io.mem.awready
-        dmem_wready := io.mem.wready
-        dmem_bresp  := io.mem.bresp
-        dmem_bvalid := io.mem.bvalid
-
-        mem_araddr  := io.dmem.araddr
-        mem_arvalid := io.dmem.arvalid
-        mem_rready  := io.dmem.rready
-        mem_awaddr  := io.dmem.awaddr
-        mem_awvalid := io.dmem.awvalid
-        mem_wdata   := io.dmem.wdata
-        mem_wstrb   := io.dmem.wstrb
-        mem_wvalid  := io.dmem.wvalid
-        mem_bready  := io.dmem.bready
-
-    }
-    def DefaultMem(): Unit = {
-        mem_araddr := DontCare
-        mem_arvalid := false.B
-        mem_rready := false.B
-        mem_awaddr := false.B
-        mem_awvalid := false.B
-        mem_wdata := DontCare
-        mem_wstrb := 0.U
-        mem_wvalid := false.B
-        mem_bready := false.B
-    }
-    def DefaultImem(): Unit = {
-        imem_arready := true.B
-        imem_rdata := DontCare
-        imem_rresp := 0.U
-        imem_rvalid := false.B
-        imem_awready := false.B
-        imem_wready := false.B
-        imem_bresp := false.B
-        imem_bvalid := false.B
-    }
-    def DefaultDmem(): Unit = {
-        dmem_arready := true.B
-        dmem_rdata := DontCare
-        dmem_rresp := 0.U
-        dmem_rvalid := false.B
-        dmem_awready := true.B
-        dmem_wready := true.B
-        dmem_bresp := false.B
-        dmem_bvalid := false.B
     }
 }
