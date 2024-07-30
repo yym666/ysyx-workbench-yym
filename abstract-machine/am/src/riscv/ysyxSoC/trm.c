@@ -27,8 +27,8 @@ extern char _sdram_start;
 int main(const char *args);
 
 // extern char _pmem_start;
-#define SDRAM_SIZE 0x800000
-#define SDRAM_END  ((uintptr_t)&_sdram_start + SDRAM_SIZE)
+#define SDRAM_SIZEH 0x8000000
+#define SDRAM_END  ((uintptr_t)&_sdram_start + SDRAM_SIZEH)
 
 # define npc_trap(code) asm volatile("mv a0, %0; ebreak" : :"r"(code))
 

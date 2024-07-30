@@ -67,15 +67,6 @@ static void out_of_bound(paddr_t addr) {
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
 }
 
-// void init_mem() {
-// #if   defined(CONFIG_PMEM_MALLOC)
-//   pmem = malloc(CONFIG_MSIZE);
-//   assert(pmem);
-// #endif
-//   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
-//   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
-// }
-
 static const uint32_t img [] = {
   0x00000297,  // auipc t0,0       
   0x00028823,  // sb  zero,16(t0)

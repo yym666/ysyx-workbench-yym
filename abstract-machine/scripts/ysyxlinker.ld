@@ -42,7 +42,7 @@ SECTIONS {
 
     . = _sram_start;
     _stack_top = ALIGN(0x400);
-    . = _stack_top + 0x1800;
+    . = _stack_top + 0x1ff0;
     _cpy_begin = LOADADDR(.data);
     _stack_pointer = .;
     end = .;
