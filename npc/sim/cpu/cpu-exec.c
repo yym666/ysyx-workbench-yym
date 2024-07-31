@@ -25,6 +25,7 @@
 #include <vcd.h>
 #include "VysyxSoCFull__Dpi.h"
 #include "svdpi.h"
+#include <nvboard.h>
 
 #define SERIAL_PORT 0xa00003f8
 #define RTC_ADDR    0xa0000048
@@ -235,4 +236,5 @@ void cpu_exec(uint64_t n) {
   }
 
     tfp -> close();
+    nvboard_quit();
 }

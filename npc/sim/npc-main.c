@@ -1,6 +1,7 @@
 #include <common.h>
 #include <isa.h>
 #include <vcd.h>
+#include <nvboard.h>
 
 void init_monitor(int, char *[]);
 void am_init_monitor();
@@ -12,8 +13,12 @@ VerilatedContext *contextp = NULL;
 VerilatedVcdC *tfp = NULL;
 VysyxSoCFull* top = new VysyxSoCFull;
 
+void nvboard_bind_all_pins(VysyxSoCFull* top);
+
 void step_and_dump_wave(){
   top->eval();
+  nvboard_update();
+  
   contextp->timeInc(1);
   tfp->dump(contextp->time());
 }
@@ -30,6 +35,8 @@ static void sim_init(){
 int main(int argc, char *argv[]) {
 	Verilated::commandArgs(argc, argv);
   sim_init();
+  nvboard_bind_all_pins(top);
+  nvboard_init();
   /* Initialize the monitor. */
 #ifdef CONFIG_TARGET_AM
   am_init_monitor();

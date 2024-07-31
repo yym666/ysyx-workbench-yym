@@ -42,10 +42,41 @@ void bootloader(){
     extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
     char *src; char *dst;
 #ifdef CONFIG_RTT
-    extern char _cpy_beginex, __fsymtab_start, __am_apps_data_end;
-    src = &_cpy_beginex;
+    extern char _cpy_data_extra, __fsymtab_start, __am_apps_data_end, _cpy_bss_extra, __am_apps_bss_start, __am_apps_bss_end;
+    src = &_cpy_data_extra;
     dst = &__fsymtab_start;
     while (dst < &__am_apps_data_end) *dst++ = *src++;
+    src = &_cpy_bss_extra;
+    dst = &__am_apps_bss_start;
+    while (dst < &__am_apps_bss_end) *dst++ = 0;
+#endif
+    src = &_cpy_begin;
+    dst = &_data;
+    while (dst < &_edata) *dst++ = *src++;
+    dst = &_bss_start;
+    while (dst < &_bss_end) *dst++ = 0;
+}
+
+void _bootloader1() __attribute__((section(".loader1")));
+void _bootloader1(){
+    extern char _loader2_cpy, _ld2_start, _ld2_end;
+    char *src = &_loader2_cpy;
+    char *dst = &_ld2_start;
+    while (dst < &_ld2_end) *dst++ = *src++;
+}
+
+void _bootloader2() __attribute__((section(".loader2")));
+void _bootloader2(){
+    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
+    char *src; char *dst;
+#ifdef CONFIG_RTT
+    extern char _cpy_data_extra, __fsymtab_start, __am_apps_data_end, _cpy_bss_extra, __am_apps_bss_start, __am_apps_bss_end;
+    src = &_cpy_data_extra;
+    dst = &__fsymtab_start;
+    while (dst < &__am_apps_data_end) *dst++ = *src++;
+    src = &_cpy_bss_extra;
+    dst = &__am_apps_bss_start;
+    while (dst < &__am_apps_bss_end) *dst++ = 0;
 #endif
     src = &_cpy_begin;
     dst = &_data;
@@ -77,6 +108,8 @@ void halt(int code) {
 
 void _trm_init() {
   bootloader();
+  // _bootloader1();
+  // _bootloader2();
   uart_init(30);
   int ret = main(mainargs);
   halt(ret);

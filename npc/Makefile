@@ -36,6 +36,8 @@ CFLAGS_TRACE += -DMTRACE_COND=$(if $(CONFIG_MTRACE_COND),$(call remove_quote,$(C
 CFLAGS_TRACE += -DFTRACE_COND=$(if $(CONFIG_FTRACE_COND),$(call remove_quote,$(CONFIG_FTRACE_COND)),true)
 CFLAGS  += $(CFLAGS_BUILD) $(CFLAGS_TRACE) -D__GUEST_ISA__=$(NPC_GUEST_ISA) $(INCFLAGS) \
 		   $(shell llvm-config --cxxflags) -fPIE
+IFLAGS 	= $(addprefix -I, $(INC_PATH))
+CXXFLAGS+= $(IFLAGS) -DTOP_NAME="\"V$(TOP_NAME)\""
 LDFLAGS += $(CFLAGS_BUILD)               \
            -lreadline -ldl -pie          \
            -rdynamic                     \
@@ -64,10 +66,14 @@ VSRCS += $(shell find $(abspath $(YSYXSoC)/build) -name "*.v")
 # include
 DIRI  = $(NPC_HOME)/include           	\
 		$(NPC_HOME)/include/generated 	\
+		$(NPC_HOME)/include/nvboard		\
 		$(NPC_HOME)/build/obj_dir		\
-		$(NPC_HOME)/sim/riscv32/include
-INCS  = $(shell find $(DIRI) -name "*.h")
+		$(NPC_HOME)/sim/riscv32/include 
+# INCS  = $(shell find $(DIRI) -name "*.h")
 INCFLAGS = $(addprefix -I, $(DIRI))
+
+show:
+	echo $(INC_PATH)
 
 # c_src
 DIRC += $(NPC_HOME)/sim             \
@@ -81,10 +87,19 @@ DIRC += $(NPC_HOME)/sim             \
 		$(NPC_HOME)/sim/engine      \
 		$(NPC_HOME)/sim/engine/interpreter \
 		$(NPC_HOME)/cpu/resources
+		
+		
+# nvboard
+include $(NVBOARD_HOME)/scripts/nvboard.mk
+NXDC_FILES = constr/top.nxdc
+BIND_SRC = $(abspath $(BUILD_DIR)/auto_bind.cpp)
+$(BIND_SRC): $(NXDC_FILES)
+	python3 $(NVBOARD_HOME)/scripts/auto_pin_bind.py $^ $@
 SRCC  = $(shell find $(DIRC) -name "*.c") \
 		$(NPC_HOME)/sim/utils/disasm.cpp \
 		$(NPC_HOME)/sim/dpic.cpp
 
+# gen
 $(SRCV_GEN): $(SRCS)
 	$(call git_commit, "generate verilog")
 	mkdir -p $(BUILD_DIR)                           
@@ -98,10 +113,10 @@ VERILATOR_CFLAGS += $(VERILATOR_INC)
 VERILATOR_CFLAGS += --timescale "1ns/1ns" --no-timing
 VERILATOR_CFLAGS += --autoflush
 
-$(BIN): $(VSRCS) $(SRCV_GEN) $(SRCC)
+$(BIN): $(VSRCS) $(SRCV_GEN) $(SRCC) $(NVBOARD_ARCHIVE) $(BIND_SRC)
 	@rm -rf $(DIR_OBJ)
 	$(VERILATOR) $(VERILATOR_CFLAGS)        \
-	--top-module $(TOP_NAME) $(VSRCS) $(SRCV_GEN) $(SRCC) \
+	--top-module $(TOP_NAME) $(VSRCS) $(SRCV_GEN) $(SRCC) $(BIND_SRC) $(NVBOARD_ARCHIVE) \
 	$(addprefix -CFLAGS ,  $(CFLAGS))           \
 	$(addprefix -LDFLAGS , $(LDFLAGS))          \
 	--Mdir $(DIR_OBJ) --exe -o $(abspath $(BIN))

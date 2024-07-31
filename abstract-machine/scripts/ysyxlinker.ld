@@ -1,5 +1,7 @@
 ENTRY(_start)
-PHDRS { text PT_LOAD; 
+PHDRS { init PT_LOAD;
+        loader2 PT_LOAD;
+        text PT_LOAD; 
         data PT_LOAD; 
         }
 
@@ -11,8 +13,18 @@ MEMORY {
 
 SECTIONS {
     . = ORIGIN(flash);
-    .text : ALIGN(8){
+    .init : ALIGN(8){
         *(entry)
+        *(.loader1)
+    } > flash AT > flash : init
+    
+    .loader2 : ALIGN(8){
+        _ld2_start = .;
+        *(.loader2)
+        _ld2_end = .;
+    } > sdram AT > flash : loader2
+
+    .text : ALIGN(8){
         *(.text*)
     } > flash AT > flash : text
     etext = .;
@@ -40,14 +52,16 @@ SECTIONS {
         _bss_end = .;
     } > sdram AT > flash
 
-    . = _sram_start;
-    _stack_top = ALIGN(0x400);
-    . = _stack_top + 0x1ff0;
     _cpy_begin = LOADADDR(.data);
+    _loader2_cpy = LOADADDR(.loader2);
+
+    . = _sram_start;
+    _stack_top = ALIGN(0x100);
+    . = _stack_top + 0x1000;
     _stack_pointer = .;
     end = .;
     _end = .;
 
     . = _bss_end + 0x20;
-    _heap_start = ALIGN(0x400);
+    _heap_start = ALIGN(0x100);
 }
