@@ -43,23 +43,11 @@ static void restart() {
   cpu.pc = RESET_VECTOR;
   top->reset = 1;
   for (int i = 1; i <= 12; ++i){
-  step_and_dump_wave();
-  top->clock = 0;
-  step_and_dump_wave();
-  top->clock = 1;
+    step_and_dump_wave();
+    top->clock = 0;
+    step_and_dump_wave();
+    top->clock = 1;
   }
-  // step_and_dump_wave();
-  // top->clock = 0;
-  // step_and_dump_wave();
-  // top->clock = 1;
-  // step_and_dump_wave();
-  // top->clock = 0;
-  // step_and_dump_wave();
-  // top->clock = 1;
-  // step_and_dump_wave();
-  // top->clock = 0;
-  // step_and_dump_wave();
-  // top->clock = 1;
   step_and_dump_wave();
   top->reset = 0;
   // step_and_dump_wave();

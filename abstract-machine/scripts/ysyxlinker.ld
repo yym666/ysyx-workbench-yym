@@ -1,32 +1,35 @@
 ENTRY(_start)
-PHDRS { init PT_LOAD;
-        loader2 PT_LOAD;
+PHDRS { bootloader1 PT_LOAD;
+        bootloader2 PT_LOAD;
         text PT_LOAD; 
         data PT_LOAD; 
         }
 
 MEMORY {
-  flash : ORIGIN = 0x30000000, LENGTH = 16M
-  sdram : ORIGIN = 0xa0000000, LENGTH = 8M
+  flash : ORIGIN = 0x30000000, LENGTH = 32M
+  sdram : ORIGIN = 0xa0000000, LENGTH = 32M
   sram : ORIGIN = 0x0f000000, LENGTH = 8K
 }
 
 SECTIONS {
     . = ORIGIN(flash);
-    .init : ALIGN(8){
+    .bootloader1 : ALIGN(8){
         *(entry)
-        *(.loader1)
-    } > flash AT > flash : init
-    
-    .loader2 : ALIGN(8){
+        *(.loader)
+    } > flash AT > flash : bootloader1
+
+    .bootloader2 : ALIGN(8){
         _ld2_start = .;
         *(.loader2)
         _ld2_end = .;
-    } > sdram AT > flash : loader2
+    } > sram AT > flash : bootloader2
 
     .text : ALIGN(8){
+        _mytext = .;
+        _text = .;
         *(.text*)
-    } > flash AT > flash : text
+        _emytext = .;
+    } > sdram AT > flash : text
     etext = .;
     _etext = .;
 
@@ -52,10 +55,11 @@ SECTIONS {
         _bss_end = .;
     } > sdram AT > flash
 
-    _cpy_begin = LOADADDR(.data);
-    _loader2_cpy = LOADADDR(.loader2);
+    _data_cpy = LOADADDR(.data);
+    _text_cpy = LOADADDR(.text);
+    _loader2_cpy = LOADADDR(.bootloader2);
 
-    . = _sram_start;
+    . = _sram_start + SIZEOF(.bootloader2);
     _stack_top = ALIGN(0x100);
     . = _stack_top + 0x1000;
     _stack_pointer = .;

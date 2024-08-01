@@ -1,7 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
 #include <riscv/riscv.h>
-// #include <ysyx.h>
 #define CONFIG_RTT 1
 
 #define UART_BASE 0x10000000L
@@ -38,51 +37,69 @@ Area heap = RANGE(&_heap_start, SDRAM_END);
 #endif
 static const char mainargs[] = MAINARGS;
 
-void bootloader(){
-    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
-    char *src; char *dst;
-#ifdef CONFIG_RTT
-    extern char _cpy_data_extra, __fsymtab_start, __am_apps_data_end, _cpy_bss_extra, __am_apps_bss_start, __am_apps_bss_end;
-    src = &_cpy_data_extra;
-    dst = &__fsymtab_start;
-    while (dst < &__am_apps_data_end) *dst++ = *src++;
-    src = &_cpy_bss_extra;
-    dst = &__am_apps_bss_start;
-    while (dst < &__am_apps_bss_end) *dst++ = 0;
-#endif
-    src = &_cpy_begin;
-    dst = &_data;
-    while (dst < &_edata) *dst++ = *src++;
-    dst = &_bss_start;
-    while (dst < &_bss_end) *dst++ = 0;
-}
 
-void _bootloader1() __attribute__((section(".loader1")));
+// void bootloader() __attribute__((section(".loader")));
+// void bootloader(){
+//     extern char _data_cpy, _data, _edata, _bss_start, _bss_end;
+//     // extern char _text_cpy, _mytext, _emytext;
+//     char *src; char *dst;
+// #ifdef CONFIG_RTT
+//     extern char _cpy_data_extra, __fsymtab_start, __am_apps_data_end, _cpy_bss_extra, __am_apps_bss_start, __am_apps_bss_end;
+//     src = &_cpy_data_extra;
+//     dst = &__fsymtab_start;
+//     while (dst < &__am_apps_data_end) *dst++ = *src++;
+//     src = &_cpy_bss_extra;
+//     dst = &__am_apps_bss_start;
+//     while (dst < &__am_apps_bss_end) *dst++ = 0;
+// #endif
+//     src = &_data_cpy;
+//     dst = &_data;
+//     while (dst < &_edata) *dst++ = *src++;
+//     // src = &_text_cpy;
+//     // dst = &_mytext;
+//     // while (dst < &_emytext) *dst++ = *src++;
+//     dst = &_bss_start;
+//     while (dst < &_bss_end) *dst++ = 0;
+// }
+
+void _bootloader1() __attribute__((section(".loader")));
 void _bootloader1(){
-    extern char _loader2_cpy, _ld2_start, _ld2_end;
-    char *src = &_loader2_cpy;
-    char *dst = &_ld2_start;
-    while (dst < &_ld2_end) *dst++ = *src++;
+    extern uint8_t _loader2_cpy, _ld2_start, _ld2_end;
+    uint64_t *src = (uint64_t*)&_loader2_cpy;
+    uint64_t *dst = (uint64_t*)&_ld2_start;
+    while ((uint8_t*)dst < &_ld2_end) *dst++ = *src++;
 }
 
 void _bootloader2() __attribute__((section(".loader2")));
 void _bootloader2(){
-    extern char _cpy_begin, _data, _edata, _bss_start, _bss_end;
-    char *src; char *dst;
+    extern uint8_t _data_cpy, _data, _edata; 
+    extern uint8_t _text_cpy, _mytext, _emytext;
+    extern uint8_t _bss_start, _bss_end;
+    uint8_t *dta_src; uint8_t *dta_dst; 
+    uint64_t *txt_src; uint64_t *txt_dst; 
+    uint8_t *bss_dst;
+
 #ifdef CONFIG_RTT
-    extern char _cpy_data_extra, __fsymtab_start, __am_apps_data_end, _cpy_bss_extra, __am_apps_bss_start, __am_apps_bss_end;
-    src = &_cpy_data_extra;
-    dst = &__fsymtab_start;
-    while (dst < &__am_apps_data_end) *dst++ = *src++;
-    src = &_cpy_bss_extra;
-    dst = &__am_apps_bss_start;
-    while (dst < &__am_apps_bss_end) *dst++ = 0;
+    extern uint8_t _cpy_data_extra, __fsymtab_start, __am_apps_data_end;
+    extern uint8_t __am_apps_bss_start, __am_apps_bss_end;
+
+    dta_src = (uint8_t*)&_cpy_data_extra;
+    dta_dst = (uint8_t*)&__fsymtab_start;
+    while ((uint8_t*)dta_dst < &__am_apps_data_end) *dta_dst++ = *dta_src++;
+
+    bss_dst = &__am_apps_bss_start;
+    while (bss_dst < &__am_apps_bss_end) *bss_dst++ = 0;
 #endif
-    src = &_cpy_begin;
-    dst = &_data;
-    while (dst < &_edata) *dst++ = *src++;
-    dst = &_bss_start;
-    while (dst < &_bss_end) *dst++ = 0;
+    txt_src = (uint64_t*)&_text_cpy;
+    txt_dst = (uint64_t*)&_mytext;
+    while ((uint8_t*)txt_dst < &_emytext) *txt_dst++ = *txt_src++;
+
+    dta_src = (uint8_t*)&_data_cpy;
+    dta_dst = (uint8_t*)&_data;
+    while ((uint8_t*)dta_dst < &_edata) *dta_dst++ = *dta_src++;
+
+    bss_dst = &_bss_start;
+    while (bss_dst < &_bss_end) *bss_dst++ = 0;
 }
 
 void uart_init(uint16_t rate){
@@ -106,10 +123,11 @@ void halt(int code) {
   while (1);
 }
 
+void _trm_init() __attribute__((section(".loader")));
 void _trm_init() {
-  bootloader();
-  // _bootloader1();
-  // _bootloader2();
+  // bootloader();
+  _bootloader1();
+  _bootloader2();
   uart_init(60);
   int ret = main(mainargs);
   halt(ret);

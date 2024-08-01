@@ -40,4 +40,4 @@
 // #define DIFFTEST_ON 1
 
 #define NVBOARD 1
-#define WAVE_ON 1
+// #define WAVE_ON 1

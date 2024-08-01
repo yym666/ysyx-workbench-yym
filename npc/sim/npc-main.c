@@ -21,8 +21,8 @@ void step_and_dump_wave(){
   nvboard_update();
 #endif
   
-  contextp->timeInc(1);
-  tfp->dump(contextp->time());
+  // contextp->timeInc(1);
+  // tfp->dump(contextp->time());
 }
 
 static void sim_init(){
@@ -30,8 +30,8 @@ static void sim_init(){
     tfp = new VerilatedVcdC;
     top = new VysyxSoCFull;
     contextp -> traceEverOn(true);
-	  top -> trace(tfp, 0);
-    tfp -> open("dump.vcd");
+	  // top -> trace(tfp, 0);
+    // tfp -> open("dump.vcd");
 }
 
 int main(int argc, char *argv[]) {

@@ -94,10 +94,10 @@ class ICH extends Module{
             imem_arvalid := false.B
             imem_rready  := false.B
             
-            inst_tmp     := io.imem.rdata
+            inst_tmp     := Mux(io.addr(2) =/= 1.U, io.imem.rdata, io.imem.rdata >> 32)
             inst_rd_tmp  := true.B
 
-            icache(index)       := io.imem.rdata
+            icache(index)       := Mux(io.addr(2) =/= 1.U, io.imem.rdata, io.imem.rdata >> 32)
             icache_tag(index)   := io.addr / 4.U
             icache_valid(index) := true.B
         }
