@@ -38,3 +38,6 @@
 // #define PRINT_LOG 1
 // #define CONFIG_DIFFTEST 1
 // #define DIFFTEST_ON 1
+
+#define NVBOARD 1
+#define WAVE_ON 1

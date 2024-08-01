@@ -48,7 +48,7 @@
 //#define MAX_INST_TO_PRINT 10
 
 CPU_state cpu = {};
-uint64_t g_nr_guest_inst = 0;
+uint64_t cnt_inst = 0, cnt_cycle = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
 static bool halt = false;
@@ -110,11 +110,6 @@ void ftrace_jalr(Decode *s, word_t rd){
 int last_pc = 0;
 
 static void exec_once(Decode *s, vaddr_t pc) {
-  bool first_skip = false; 
-  if (TOPPC == 0x30000000 || TOPPC == 0x2ffffffc) first_skip = true;
-  else first_skip = false;
-
-  //q s->isa.inst.val = top->io_inst;
 #ifdef PRINT_LOG
   Log("%x %08x", s->pc, s->isa.inst.val);
 #endif
@@ -127,10 +122,12 @@ static void exec_once(Decode *s, vaddr_t pc) {
   // if (top->io_inst_code == isJALR) ftrace_jalr(s, top->io_rd);
 
   single_cycle();
-// if (WBSTATE == 1) printf("pc = %08x\n", WBPC);
-#ifdef CONFIG_DIFFTEST
+
+  //cnt
+  cnt_cycle ++;
+  if (WBSTATE == 1) cnt_inst ++;
   RegUpdate();
-  // if (last_pc != TOPPC && !first_skip) {
+#ifdef CONFIG_DIFFTEST
   if (do_diff == 1){
     s->pc = WBPC;
     trace_and_difftest(s, WBPC);
@@ -138,7 +135,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   if (WBSTATE == 1) do_diff = 1;
   else do_diff = 0;
 #endif
-  RegUpdate();
   if (halt) NPCTRAP(TOPPC, cpu.gpr[10]);
 
 #ifdef CONFIG_ITRACE
@@ -156,14 +152,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   space_len = space_len * 3 + 1;
   memset(p, ' ', space_len);
   p += space_len;
-
-#ifndef CONFIG_ISA_loongarch32r
-  extern void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-  disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
-      MUXDEF(CONFIG_ISA_x86, s->snpc, s->pc), (uint8_t *)&s->isa.inst.val, ilen);
-#else
-  p[0] = '\0'; // the upstream llvm does not support loongarch32r
-#endif
 #endif
 }
 
@@ -173,7 +161,6 @@ static void execute(uint64_t n) {
     exec_once(&s, TOPPC);
     
     if (halt) return;
-    g_nr_guest_inst ++;
     
     if (npc_state.state != NPC_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
@@ -184,8 +171,10 @@ static void statistic() {
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
-  Log("total guest instructions = " NUMBERIC_FMT, g_nr_guest_inst);
-  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " inst/s", g_nr_guest_inst * 1000000 / g_timer);
+  Log("total guest instructions = " NUMBERIC_FMT, cnt_inst);
+  Log("total cycle = " NUMBERIC_FMT, cnt_cycle);
+  Log("IPC = " NUMBERIC_FMT, cnt_cycle / cnt_inst);
+  if (g_timer > 0) Log("simulation frequency = " NUMBERIC_FMT " inst/s", cnt_inst * 1000000 / g_timer);
   else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
@@ -236,5 +225,7 @@ void cpu_exec(uint64_t n) {
   }
 
     tfp -> close();
+#ifdef NVBOARD
     nvboard_quit();
+#endif
 }

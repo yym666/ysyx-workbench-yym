@@ -28,10 +28,6 @@ class IFU extends Module {
     io.addr     := addr_tmp
     io.addr_vl  := addr_vl_tmp
 
-    val lfsr  = RegInit(3.U(4.W))
-    lfsr := Cat(lfsr(2,0), lfsr(0) ^ lfsr(1) ^ lfsr(2))
-    val delay = RegInit(lfsr)
-
     val flush = RegInit(false.B)
     //State
     val idle :: in_icache :: wait_ready :: Nil = Enum(3)

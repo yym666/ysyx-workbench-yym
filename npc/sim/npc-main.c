@@ -17,7 +17,9 @@ void nvboard_bind_all_pins(VysyxSoCFull* top);
 
 void step_and_dump_wave(){
   top->eval();
+#ifdef NVBOARD
   nvboard_update();
+#endif
   
   contextp->timeInc(1);
   tfp->dump(contextp->time());
@@ -35,8 +37,10 @@ static void sim_init(){
 int main(int argc, char *argv[]) {
 	Verilated::commandArgs(argc, argv);
   sim_init();
+#ifdef NVBOARD
   nvboard_bind_all_pins(top);
   nvboard_init();
+#endif
   /* Initialize the monitor. */
 #ifdef CONFIG_TARGET_AM
   am_init_monitor();

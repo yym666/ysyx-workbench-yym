@@ -85,7 +85,7 @@ void _bootloader2(){
     while (dst < &_bss_end) *dst++ = 0;
 }
 
-void uart_init(int16_t rate){
+void uart_init(uint16_t rate){
   outb(UART_REG_LC, 0b10000011);
   outb(UART_REG_DL2, (uint8_t)(rate >> 8));
   outb(UART_REG_DL1, (uint8_t)rate);
@@ -110,7 +110,7 @@ void _trm_init() {
   bootloader();
   // _bootloader1();
   // _bootloader2();
-  uart_init(30);
+  uart_init(60);
   int ret = main(mainargs);
   halt(ret);
 }
