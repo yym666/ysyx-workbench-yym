@@ -57,7 +57,7 @@ module CLINT(
 //READ
     reg         Rstate;
     reg         nxtRstate;
-    reg [3:0]   delayR;
+    // reg [3:0]   delayR;
     reg [1:0]   axi_rresp_r;
     reg         axi_rvalid_r;
     reg         axi_arready_r;
@@ -70,7 +70,7 @@ module CLINT(
     always @(posedge clock) begin
         if(reset) begin
             Rstate <= Rstate1;
-            delayR <= lfsr;
+            // delayR <= lfsr;
         end
         else 
             Rstate <= nxtRstate;
@@ -93,20 +93,20 @@ module CLINT(
                 axi_arready_r   <= 1'b1;
                 axi_rresp_r     <= 2'b00;
                 axi_rvalid_r    <= 1'b0;
-                delayR          <= lfsr;
+                // delayR          <= lfsr;
             end
             Rstate2: begin
                 axi_arready_r   <= 1'b0;
                 axi_rresp_r     <= 2'b00;
-                delayR          <= delayR - 1;
-                if(delayR == 0)begin
+                // delayR          <= delayR - 1;
+                // if(delayR == 0)begin
                     diff_skip();
-                    if(axi_araddr == 32'ha0000048) begin
+                    if(axi_araddr == 32'h02000000) begin
                         axi_rdata   <= {32'b0, mtime[31:0]};
                         axi_rresp_r <= 2'b00;
                         axi_rvalid_r<= 1'b1;
                     end
-                    else if(axi_araddr == 32'ha000004c) begin
+                    else if(axi_araddr == 32'h02000004) begin
                         axi_rdata   <= {32'b0, mtime[63:32]};
                         axi_rresp_r <= 2'b00;
                         axi_rvalid_r<= 1'b1;
@@ -117,8 +117,8 @@ module CLINT(
                         $error("UART read error");
                     end
                 end
-                else
-                    axi_rvalid_r <= 1'b0;
+                // else
+                //     axi_rvalid_r <= 1'b0;
             end
             default: begin
                 axi_arready_r   <= 1'b1;
@@ -131,7 +131,7 @@ module CLINT(
 //WRITE 
     reg         Wstate;
     reg         nxtWstate;
-    reg [3:0]   delayW;
+    // reg [3:0]   delayW;
     reg [1:0]   axi_bresp_r;
     reg         axi_wready_r;
     reg         axi_bvalid_r;
@@ -146,7 +146,7 @@ module CLINT(
     always @(posedge clock) begin
         if(reset) begin
             Wstate <= Wstate1;
-            delayW <= lfsr;
+            // delayW <= lfsr;
         end
         else
             Wstate <= nxtWstate;
@@ -169,20 +169,20 @@ module CLINT(
                 axi_wready_r    <= 1'b1;
                 axi_bresp_r     <= 2'b00;
                 axi_bvalid_r    <= 1'b0;
-                delayW      <= lfsr;
+                // delayW      <= lfsr;
             end
             Wstate2:begin
                 axi_awready_r   <= 1'b0;
                 axi_wready_r    <= 1'b0;
                 axi_bresp_r     <= 2'b00;
-                delayW      <= delayW - 1;
-                if(delayW == 0) begin
+                // delayW      <= delayW - 1;
+                // if(delayW == 0) begin
                     diff_skip();
                     axi_bvalid_r <= 1'b1;
                     $error("CLINT write error");
-                end
-                else
-                    axi_bvalid_r <= 1'b0;
+                // end
+                // else
+                    // axi_bvalid_r <= 1'b0;
             end
         endcase
     end

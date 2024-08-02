@@ -16,14 +16,21 @@ class ysyx_23060250 extends Module {
     AXI_DC_INIT()
     val CORE = Module(new CORE)
     val ARB  = Module(new ARB)
-    // val CLT  = Module(new CLINT)
+    val XBR  = Module(new XBR)
+    val CLT  = Module(new CLINT)
+
+    CLT.io.clock:= clock
+    CLT.io.reset:= reset
 
     CORE.io.imem :<>= ARB.io.imem
     CORE.io.dmem :<>= ARB.io.dmem
-    ARB.io.mem :<>= io.master  
-    // io.slave    := CLT.io.axi
-    // CLT.io.clock:= clock
-    // CLT.io.reset:= reset
+
+    ARB.io.mem <> XBR.io.arb 
+    
+    // XBR.io.mastr :<>= io.master
+    XBR.io.mastr :<>= io.master
+    XBR.io.clint <> CLT.io.axi
+    
 
     def AXI_DC_INIT(): Unit= {
         io.slave.arready := false.B
@@ -38,23 +45,23 @@ class ysyx_23060250 extends Module {
         io.slave.bresp := 0.U
         io.slave.bvalid := false.B
         io.slave.bid := 0.U
-        io.master.araddr := DontCare
-        io.master.arvalid := false.B
-        io.master.arid := 0.U
-        io.master.arlen := 0.U
-        io.master.arsize := 0.U
-        io.master.arburst := 0.U
-        io.master.rready := false.B
-        io.master.awaddr := DontCare
-        io.master.awvalid := false.B
-        io.master.awid := 0.U
-        io.master.awlen := 0.U
-        io.master.awsize := 0.U
-        io.master.awburst := 0.U
-        io.master.wdata := DontCare
-        io.master.wstrb := 0.U
-        io.master.wvalid := 0.U
-        io.master.wlast := false.B
-        io.master.bready := false.B
+        // io.master.araddr := DontCare
+        // io.master.arvalid := false.B
+        // io.master.arid := 0.U
+        // io.master.arlen := 0.U
+        // io.master.arsize := 0.U
+        // io.master.arburst := 0.U
+        // io.master.rready := false.B
+        // io.master.awaddr := DontCare
+        // io.master.awvalid := false.B
+        // io.master.awid := 0.U
+        // io.master.awlen := 0.U
+        // io.master.awsize := 0.U
+        // io.master.awburst := 0.U
+        // io.master.wdata := DontCare
+        // io.master.wstrb := 0.U
+        // io.master.wvalid := 0.U
+        // io.master.wlast := false.B
+        // io.master.bready := false.B
     }
 }

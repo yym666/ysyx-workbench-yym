@@ -100,11 +100,13 @@ class ARB extends Module{
                 mem_arvalid := true.B
                 mem_araddr  := io.imem.araddr
                 dmem_arready:= false.B
+                imem_arready:= true.B
             }.elsewhen(io.dmem.arvalid === true.B){
                 RDtoDMEM()
                 mem_arvalid := true.B
                 mem_araddr  := io.dmem.araddr
                 imem_arready:= false.B
+                dmem_arready:= true.B
             }.otherwise{
                 mem_arvalid := false.B
                 imem_arready:= false.B
@@ -158,7 +160,6 @@ class ARB extends Module{
         }
     }
     def RDtoIMEM(): Unit = {
-        imem_arready:= io.mem.arready
         imem_rresp  := io.mem.rresp
         imem_awready:= io.mem.awready
         imem_wready := io.mem.wready
@@ -166,7 +167,6 @@ class ARB extends Module{
         imem_bvalid := io.mem.bvalid
     }
     def RDtoDMEM(): Unit = {
-        dmem_arready:= io.mem.arready
         dmem_rresp  := io.mem.rresp
     }
 }

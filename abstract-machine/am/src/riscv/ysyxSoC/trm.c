@@ -128,7 +128,7 @@ void _trm_init() {
   // bootloader();
   _bootloader1();
   _bootloader2();
-  uart_init(60);
+  uart_init(10);
   int ret = main(mainargs);
   halt(ret);
 }

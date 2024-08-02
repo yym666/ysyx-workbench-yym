@@ -63,7 +63,7 @@ static void pmem_write(paddr_t addr, int len, word_t data) {
 }
 
 static void out_of_bound(paddr_t addr) {
-  panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
+  panic("npc address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
       addr, PMEM_LEFT, PMEM_RIGHT, cpu.pc);
 }
 
@@ -104,12 +104,17 @@ void init_sdram() {
 	Log("sdram area [%#x, %#x]", SDRAM_BASE, SDRAM_BASE + SDRAM_SIZE);
 }
 
+bool in_clint(paddr_t addr){
+  if (addr == 0x02000000 || addr == 0x02000004) return true;
+  return false;
+}
+
 word_t paddr_read(paddr_t addr, int len) {
   #ifdef CONFIG_MTRACE_COND
     void mtrace_read(paddr_t addr, int len);
     mtrace_read(addr, len);
   #endif
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  if (likely(in_pmem(addr)) || in_clint(addr)) return pmem_read(addr, len);
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   // return pmem_read(addr, len);
   // printf("read");
