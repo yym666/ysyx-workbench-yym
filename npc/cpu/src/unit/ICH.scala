@@ -43,12 +43,12 @@ class ICH extends Module{
     val inst_tmp    = RegInit(0.U(32.W))
     val inst_rd_tmp = RegInit(false.B)
 
-    val icache          = Reg(Vec(16, UInt(DATA_WIDTH.W)))
-    val icache_tag      = Reg(Vec(16, UInt(30.W)))
-    val icache_valid    = Reg(Vec(16, Bool()))
+    val icache          = Reg(Vec(64, UInt(DATA_WIDTH.W)))
+    val icache_tag      = Reg(Vec(64, UInt(30.W)))
+    val icache_valid    = Reg(Vec(64, Bool()))
 
     val tag     =  io.addr / 4.U
-    val index   = (io.addr / 4.U) & 0xF.U
+    val index   = (io.addr / 4.U) & 0x3F.U
 
     val cache_dat   = icache(index)
     val cache_tag   = icache_tag(index)

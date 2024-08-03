@@ -116,7 +116,7 @@ module CLINT(
                         axi_rresp_r <= 2'b01;
                         $error("UART read error");
                     end
-                end
+                // end
                 // else
                 //     axi_rvalid_r <= 1'b0;
             end

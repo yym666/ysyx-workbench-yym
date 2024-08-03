@@ -36,6 +36,7 @@ static inline bool in_sram(paddr_t addr) { return addr - SRAM_BASE < SRAM_SIZE; 
 static inline bool in_uart(paddr_t addr) { return addr - UART_BASE < UART_SIZE; }
 static inline bool in_flash(paddr_t addr) { return (addr - FLASH_BASE < FLASH_SIZE); }
 static inline bool in_sdram(paddr_t addr) { return addr - SDRAM_BASE < SDRAM_SIZE; }
+static inline bool in_clint(paddr_t addr) { return (addr == 0x02000000 || addr == 0x02000004); }
 
 static void out_of_bound(paddr_t addr) {
   panic("address = " FMT_PADDR " is out of bound of pmem [" FMT_PADDR ", " FMT_PADDR "] at pc = " FMT_WORD,
@@ -127,9 +128,8 @@ word_t paddr_read(paddr_t addr, int len) {
     }
   #endif
   if (likely(in_sram(addr) || in_sdram(addr) || in_flash(addr))) return pmem_read(addr, len);
-  if (in_uart(addr)) { nemu_skip = true; return 0;}
+  if (in_uart(addr) || in_clint(addr)) { nemu_skip = true; return 0;}
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
-      printf("pr");
   out_of_bound(addr);
   return 0;
 }
@@ -144,6 +144,5 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_sram(addr) || in_sdram(addr) || in_flash(addr))) { pmem_write(addr, len, data); return; }
   if (in_uart(addr)) return;
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
-      printf("pw");
   out_of_bound(addr);
 }

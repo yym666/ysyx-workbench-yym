@@ -3,6 +3,10 @@
 #include <riscv/riscv.h>
 #define CONFIG_RTT 1
 
+#define GPIO_LED  0x10002000L
+#define GPIO_SWC  0x10002004L
+#define GPIO_SEG  0x10002008L
+
 #define UART_BASE 0x10000000L
 #define UART_TX   0x0
 
@@ -123,12 +127,22 @@ void halt(int code) {
   while (1);
 }
 
+void board_show(){
+  *(volatile int *)(GPIO_SEG) = (2 << 28) + (3 << 24) + (0 << 20) + (6 << 16) + (0 << 12) + (2 << 8) + (5 << 4) + (0);
+  *(volatile int *)(GPIO_LED) = 0b1010101010101010;
+  // *(volatile int *)(GPIO_SEG+4) = 0b10110110;
+  // *(volatile int *)(GPIO_SEG+12) = 0b10110110;
+}
+
 void _trm_init() __attribute__((section(".loader")));
 void _trm_init() {
   // bootloader();
   _bootloader1();
   _bootloader2();
-  uart_init(10);
+  uart_init(60);
+
+  board_show();
+
   int ret = main(mainargs);
   halt(ret);
 }
